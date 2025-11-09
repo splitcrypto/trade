@@ -64,63 +64,173 @@
 <footer class="muted" style="text-align:center">Built for SplitCoin — Polygon</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-<script type="module">
-import { Web3Modal } from 'https://unpkg.com/@web3modal/html@3.5.8/dist/index.js';
 
-const CONTRACT_ADDRESS='0x7F065737A1c975a5e037355Bdf33f5E58E4d15B0';
-const FROM_BLOCK=78763451;
-const ABI=[
-"function balanceOf(address) view returns (uint256)","function totalSupply() view returns (uint256)","function vault() view returns (address)","function currentPrice() view returns (uint256)","function totalPurchases() view returns (uint256)","function buyTokens() payable","function sellTokens(uint256)","function owner() view returns(address)","function enableTrading(bool)","function pause()","function unpause()","function withdrawAllPOL()","event TokensPurchased(address,uint256,uint256,uint256)","event TokensSold(address,uint256,uint256,uint256)"];
 
-let provider,signer,contract,ownerAddr;
-const connectBtn=document.getElementById('connectBtn');
-const devMenu=document.getElementById('devMenu');
 
-const web3Modal=new Web3Modal({projectId:'splitcoin-demo',themeMode:'light'});
 
-connectBtn.addEventListener('click',async()=>{
-  const instance=await web3Modal.connect();
-  provider=new ethers.BrowserProvider(instance);
-  signer=await provider.getSigner();
-  contract=new ethers.Contract(CONTRACT_ADDRESS,ABI,signer);
-  ownerAddr=(await contract.owner()).toLowerCase();
-  const addr=(await signer.getAddress()).toLowerCase();
-  document.getElementById('address').textContent=addr;
-  const network=await provider.getNetwork();
-  document.getElementById('network').textContent=network.name;
-  if(addr===ownerAddr){devMenu.style.display='block';}
-  fetchData();
+
+  
+  
+  <script type="module">
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js";
+
+const CONTRACT_ADDRESS = "0x7F065737A1c975a5e037355Bdf33f5E58E4d15B0";
+const FROM_BLOCK = 78763451;
+const ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
+  "function vault() view returns (address)",
+  "function currentPrice() view returns (uint256)",
+  "function totalPurchases() view returns (uint256)",
+  "function buyTokens() payable",
+  "function sellTokens(uint256)",
+  "function owner() view returns(address)",
+  "function enableTrading(bool)",
+  "function pause()",
+  "function unpause()",
+  "function withdrawAllPOL()",
+  "event TokensPurchased(address,uint256,uint256,uint256)",
+  "event TokensSold(address,uint256,uint256,uint256)"
+];
+
+let provider, signer, contract, ownerAddr;
+const connectBtn = document.getElementById("connectBtn");
+const devMenu = document.getElementById("devMenu");
+
+connectBtn.addEventListener("click", async () => {
+  if (typeof window.ethereum === "undefined") {
+    alert("Please install MetaMask or a Web3 wallet!");
+    return;
+  }
+
+  try {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    const addr = (await signer.getAddress()).toLowerCase();
+    document.getElementById("address").textContent = addr;
+
+    const network = await provider.getNetwork();
+    if (network.chainId !== 137) {
+      await switchToPolygon();
+    }
+
+    document.getElementById("network").textContent =
+      network.name + " (chain " + network.chainId + ")";
+
+    ownerAddr = (await contract.owner()).toLowerCase();
+    if (addr === ownerAddr) {
+      devMenu.style.display = "block";
+    }
+
+    fetchData();
+  } catch (err) {
+    console.error("Wallet connection error:", err);
+    alert("Failed to connect wallet. Check console for details.");
+  }
 });
 
-async function fetchData(){
-  const addr=await signer.getAddress();
-  const [b,y,v,p,tp]=await Promise.all([
-    contract.balanceOf(addr),contract.totalSupply(),contract.balanceOf(await contract.vault()),contract.currentPrice(),contract.totalPurchases()
-  ]);
-  const your=+ethers.formatUnits(b,18);const tot=+ethers.formatUnits(y,18);const vault=+ethers.formatUnits(v,18);const price=+ethers.formatUnits(p,18);
-  document.getElementById('yourBalance').textContent=your.toFixed(4);
-  document.getElementById('totalSupply').textContent=tot.toFixed(2);
-  document.getElementById('vaultBalance').textContent=vault.toFixed(2);
-  document.getElementById('circulating').textContent=(tot-vault).toFixed(2);
-  document.getElementById('currentPrice').textContent=price+" MATIC";
-  document.getElementById('numBuys').textContent=await countEvents('TokensPurchased');
-  document.getElementById('numSells').textContent=await countEvents('TokensSold');
+async function switchToPolygon() {
+  const polygonParams = {
+    chainId: "0x89", // 137 in hex
+    chainName: "Polygon Mainnet",
+    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+    rpcUrls: ["https://polygon-rpc.com/"],
+    blockExplorerUrls: ["https://polygonscan.com/"],
+  };
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: polygonParams.chainId }],
+    });
+  } catch (switchError) {
+    // If the chain isn’t added yet, add it
+    if (switchError.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [polygonParams],
+      });
+    } else {
+      console.error("Network switch error:", switchError);
+    }
+  }
 }
 
-async function countEvents(ev){
-  const filter=contract.filters[ev]();
-  const logs=await provider.getLogs({address:CONTRACT_ADDRESS,fromBlock:FROM_BLOCK,toBlock:'latest',topics:filter.topics});
+async function fetchData() {
+  const addr = await signer.getAddress();
+  const [b, y, v, p, tp] = await Promise.all([
+    contract.balanceOf(addr),
+    contract.totalSupply(),
+    contract.balanceOf(await contract.vault()),
+    contract.currentPrice(),
+    contract.totalPurchases(),
+  ]);
+
+  const your = +ethers.formatUnits(b, 18);
+  const tot = +ethers.formatUnits(y, 18);
+  const vault = +ethers.formatUnits(v, 18);
+  const price = +ethers.formatUnits(p, 18);
+
+  document.getElementById("yourBalance").textContent = your.toFixed(4);
+  document.getElementById("totalSupply").textContent = tot.toFixed(2);
+  document.getElementById("vaultBalance").textContent = vault.toFixed(2);
+  document.getElementById("circulating").textContent = (tot - vault).toFixed(2);
+  document.getElementById("currentPrice").textContent = price + " MATIC";
+  document.getElementById("numBuys").textContent = await countEvents("TokensPurchased");
+  document.getElementById("numSells").textContent = await countEvents("TokensSold");
+}
+
+async function countEvents(ev) {
+  const filter = contract.filters[ev]();
+  const logs = await provider.getLogs({
+    address: CONTRACT_ADDRESS,
+    fromBlock: FROM_BLOCK,
+    toBlock: "latest",
+    topics: filter.topics,
+  });
   return logs.length;
 }
 
-// actions
-buyBtn.onclick=async()=>{const val=Number(buyAmount.value);if(!val)return alert('Enter amount');const tx=await contract.buyTokens({value:ethers.parseUnits(String(val),18)});await tx.wait();fetchData();};
-sellBtn.onclick=async()=>{const amt=await contract.balanceOf(await signer.getAddress());if(amt==0)return alert('No tokens');const tx=await contract.sellTokens(amt);await tx.wait();fetchData();};
+// === User actions ===
+buyBtn.onclick = async () => {
+  const val = Number(buyAmount.value);
+  if (!val) return alert("Enter amount");
+  const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val), 18) });
+  await tx.wait();
+  fetchData();
+};
 
-document.getElementById('enableTradingBtn').onclick=async()=>{await (await contract.enableTrading(true)).wait();alert('Trading enabled');};
-document.getElementById('pauseBtn').onclick=async()=>{await (await contract.pause()).wait();alert('Paused');};
-document.getElementById('unpauseBtn').onclick=async()=>{await (await contract.unpause()).wait();alert('Unpaused');};
-document.getElementById('withdrawAllBtn').onclick=async()=>{await (await contract.withdrawAllPOL()).wait();alert('Withdrawn');};
+sellBtn.onclick = async () => {
+  const amt = await contract.balanceOf(await signer.getAddress());
+  if (amt == 0) return alert("No tokens");
+  const tx = await contract.sellTokens(amt);
+  await tx.wait();
+  fetchData();
+};
+
+// === Dev menu (owner only) ===
+document.getElementById("enableTradingBtn").onclick = async () => {
+  await (await contract.enableTrading(true)).wait();
+  alert("Trading enabled");
+};
+document.getElementById("pauseBtn").onclick = async () => {
+  await (await contract.pause()).wait();
+  alert("Paused");
+};
+document.getElementById("unpauseBtn").onclick = async () => {
+  await (await contract.unpause()).wait();
+  alert("Unpaused");
+};
+document.getElementById("withdrawAllBtn").onclick = async () => {
+  await (await contract.withdrawAllPOL()).wait();
+  alert("Withdrawn");
+};
 </script>
+
+
+  
 </body>
 </html>
