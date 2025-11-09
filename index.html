@@ -14,59 +14,49 @@
       font-family: Inter, system-ui, sans-serif;
     }
     * { box-sizing: border-box }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: #0f172a;
-    }
+    body { margin: 0; background: var(--bg); color: #0f172a; }
     header, footer {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+      max-width: 960px; margin: 0 auto; padding: 16px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
     }
     .container {
-      max-width: 960px;
-      margin: 20px auto;
-      padding: 16px;
-      display: grid;
-      gap: 16px;
-      grid-template-columns: 1fr 340px;
+      max-width: 960px; margin: 20px auto; padding: 16px;
+      display: grid; gap: 16px; grid-template-columns: 1fr 340px;
     }
     .card {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 16px;
+      background: var(--card); border-radius: 12px; padding: 16px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
     .btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-weight: 600;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 600;
       transition: opacity 0.2s;
     }
     .btn:hover { opacity: 0.9; }
     .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 8px;
-      text-align: center;
-      font-size: 13px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px; text-align: center; font-size: 13px;
     }
-    .num {
-      font-weight: 700;
-      font-size: 16px;
-    }
+    .num { font-weight: 700; font-size: 16px; }
     .muted { color: var(--muted); font-size: 13px; }
+    #walletStatus { font-weight:600; margin-left:8px; }
     @media(max-width:800px){ .container{ grid-template-columns:1fr } }
+
+    /* About Section Styling */
+    .about-section {
+      max-width: 960px; margin: 40px auto; padding: 20px 24px;
+      background: #e6f4e6; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .about-section h3 { margin-top: 0; color: #1f9d63; font-size: 22px; }
+    .about-section p { margin: 10px 0; line-height:1.6; }
+    .about-section ul { padding-left: 20px; margin: 10px 0; }
+    .about-section ul li {
+      margin: 6px 0; position: relative; padding-left: 24px;
+    }
+    .about-section ul li::before {
+      content: "✔"; position: absolute; left: 0; color: #1f9d63; font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -76,6 +66,7 @@
   <div>
     <button id="connectMetaMask" class="btn">🦊 MetaMask</button>
     <button id="connectWC" class="btn">🔗 WalletConnect</button>
+    <span id="walletStatus" class="muted">Not connected</span>
   </div>
 </header>
 
@@ -119,28 +110,44 @@
 
 <footer class="muted" style="text-align:center">Built for SplitCoin — Polygon</footer>
 
+<!-- About SplitCoin Section -->
+<div class="about-section">
+  <h3>About SplitCoin</h3>
+
+  <p><strong>Intro:</strong> When we make money, you make money too! SplitCoin brings people together to profit from quick, strategic moves. Each purchase instantly locks in gains for the buyer, creating opportunities for fast cashouts while everyone participates in the action.</p>
+
+  <p><strong>Mechanics:</strong> SplitCoin (SPLI) is a novel approach to asset trading. Typically, stocks or crypto are held for long periods while value slowly increases. With SPLI, buying a token instantly locks in a 25% profit — your position will never be worth less, but will also never be worth more. The vault burns an equal amount of tokens with every purchase to maintain supply control and stabilize price. The goal becomes to cash out as quickly as possible, which can happen as soon as another purchase is made by someone else. Once you sell, you can buy in again, aiming for the next fast cashout. This model rewards speed, strategy, and participation in the community-driven liquidity cycle.</p>
+
+  <p><strong>Rules of Participation:</strong></p>
+  <ul>
+    <li>Buy SPLI to lock in a guaranteed 25% gain instantly.</li>
+    <li>Full exits only: sell your tokens after someone else buys to realize your profit.</li>
+    <li>After selling, you can buy in again for the next fast-turn opportunity.</li>
+    <li>Vault liquidity and token supply control the flow — every participant’s move matters, with vault burns ensuring price stability.</li>
+    <li>Owner-only functions (enable trading, pause/unpause, withdraw) ensure a fair and stable environment.</li>
+  </ul>
+
+  <p><strong>Outro:</strong> Jump in, time your buys and sells, and see how quickly you can turn a profit. SPLI makes trading fast, fair, and community-driven — get ready to be part of the next big step in crypto evolution!</p>
+</div>
+
 <!-- Ethers + WalletConnect -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/index.umd.min.js"></script>
+<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/index.umd.js"></script>
 
 <script>
 const CONTRACT_ADDRESS = "0x7F065737A1c975a5e037355Bdf33f5E58E4d15B0";
-const FROM_BLOCK = 78763451;
 const ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
   "function vault() view returns (address)",
   "function currentPrice() view returns (uint256)",
-  "function totalPurchases() view returns (uint256)",
   "function buyTokens() payable",
   "function sellTokens(uint256)",
   "function owner() view returns(address)",
   "function enableTrading(bool)",
   "function pause()",
   "function unpause()",
-  "function withdrawAllPOL()",
-  "event TokensPurchased(address,uint256,uint256,uint256)",
-  "event TokensSold(address,uint256,uint256,uint256)"
+  "function withdrawAllPOL()"
 ];
 
 let provider, signer, contract, ownerAddr;
@@ -153,14 +160,16 @@ async function connectMetaMask() {
 }
 
 async function connectWalletConnect() {
-  const wcProvider = await window.WalletConnectProvider.default.init({
+  const EthereumProvider = window.WalletConnectEthereumProvider?.default || window.WalletConnectEthereumProvider;
+  if (!EthereumProvider) { alert("WalletConnect failed to load."); return; }
+  const wc = await EthereumProvider.init({
     projectId: "splitcoin-demo",
     chains: [137],
     rpcMap: { 137: "https://polygon-rpc.com/" },
     showQrModal: true,
   });
-  await wcProvider.enable();
-  provider = new ethers.BrowserProvider(wcProvider);
+  await wc.enable();
+  provider = new ethers.BrowserProvider(wc);
   await initialize();
 }
 
@@ -169,34 +178,34 @@ async function initialize() {
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
   const addr = (await signer.getAddress()).toLowerCase();
   document.getElementById("address").textContent = addr;
-
+  document.getElementById("walletStatus").textContent = "Connected ✅";
   const network = await provider.getNetwork();
-  document.getElementById("network").textContent =
-    network.name + " (chain " + network.chainId + ")";
-
+  document.getElementById("network").textContent = network.name + " (chain " + network.chainId + ")";
   ownerAddr = (await contract.owner()).toLowerCase();
   if (addr === ownerAddr) document.getElementById("devMenu").style.display = "block";
   fetchData();
 }
 
+// --- Fetch balances and price ---
 async function fetchData() {
   const addr = await signer.getAddress();
   const [b, y, v, p] = await Promise.all([
     contract.balanceOf(addr),
     contract.totalSupply(),
     contract.balanceOf(await contract.vault()),
-    contract.currentPrice(),
+    contract.currentPrice()
   ]);
   document.getElementById("yourBalance").textContent = Number(ethers.formatUnits(b,18)).toFixed(4);
   document.getElementById("totalSupply").textContent = Number(ethers.formatUnits(y,18)).toFixed(2);
   document.getElementById("vaultBalance").textContent = Number(ethers.formatUnits(v,18)).toFixed(2);
-  document.getElementById("circulating").textContent = (Number(ethers.formatUnits(y-v,18))).toFixed(2);
+  document.getElementById("circulating").textContent = Number(ethers.formatUnits(y-v,18)).toFixed(2);
   document.getElementById("currentPrice").textContent = Number(ethers.formatUnits(p,18)) + " MATIC";
 }
 
 // --- Buttons ---
 document.getElementById("connectMetaMask").onclick = connectMetaMask;
 document.getElementById("connectWC").onclick = connectWalletConnect;
+
 document.getElementById("buyBtn").onclick = async () => {
   const val = Number(document.getElementById("buyAmount").value);
   if (!val) return alert("Enter amount");
@@ -204,6 +213,7 @@ document.getElementById("buyBtn").onclick = async () => {
   await tx.wait();
   fetchData();
 };
+
 document.getElementById("sellBtn").onclick = async () => {
   const amt = await contract.balanceOf(await signer.getAddress());
   if (amt == 0n) return alert("No tokens to sell");
@@ -212,11 +222,15 @@ document.getElementById("sellBtn").onclick = async () => {
   fetchData();
 };
 
-// --- Dev menu actions ---
+// --- Dev menu ---
 document.getElementById("enableTradingBtn").onclick = async () => { await (await contract.enableTrading(true)).wait(); alert("Trading enabled"); };
 document.getElementById("pauseBtn").onclick = async () => { await (await contract.pause()).wait(); alert("Paused"); };
 document.getElementById("unpauseBtn").onclick = async () => { await (await contract.unpause()).wait(); alert("Unpaused"); };
 document.getElementById("withdrawAllBtn").onclick = async () => { await (await contract.withdrawAllPOL()).wait(); alert("Withdrawn"); };
+
+// --- Auto-refresh every 5s ---
+setInterval(async () => { if (contract && signer) { try { await fetchData(); } catch(e){ console.error(e); } } }, 5000);
 </script>
+
 </body>
 </html>
