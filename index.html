@@ -71,9 +71,10 @@
 
   
   
-  <script type="module">
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js";
-
+<!-- Ethers + Web3Modal -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+<script src="https://unpkg.com/@web3modal/walletconnect@2.9.0/dist/index.umd.js"></script>
+<script>
 const CONTRACT_ADDRESS = "0x7F065737A1c975a5e037355Bdf33f5E58E4d15B0";
 const FROM_BLOCK = 78763451;
 const ABI = [
@@ -94,141 +95,70 @@ const ABI = [
 ];
 
 let provider, signer, contract, ownerAddr;
-const connectBtn = document.getElementById("connectBtn");
-const devMenu = document.getElementById("devMenu");
 
-connectBtn.addEventListener("click", async () => {
-  if (typeof window.ethereum === "undefined") {
-    alert("Please install MetaMask or a Web3 wallet!");
-    return;
-  }
+window.addEventListener("DOMContentLoaded", () => {
+  const connectBtn = document.getElementById("connectBtn");
+  const devMenu = document.getElementById("devMenu");
 
-  try {
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  connectBtn.addEventListener("click", async () => {
+    try {
+      // Step 1: Check MetaMask
+      if (window.ethereum) {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        provider = new ethers.BrowserProvider(window.ethereum);
+      } else {
+        // Step 2: Fallback to WalletConnect
+        const wc = new window.WalletConnectProvider.default({
+          rpc: { 137: "https://polygon-rpc.com/" },
+          chainId: 137,
+        });
+        await wc.enable();
+        provider = new ethers.BrowserProvider(wc);
+      }
 
-    const addr = (await signer.getAddress()).toLowerCase();
-    document.getElementById("address").textContent = addr;
+      signer = await provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
-    const network = await provider.getNetwork();
-    if (network.chainId !== 137) {
-      await switchToPolygon();
+      const addr = (await signer.getAddress()).toLowerCase();
+      document.getElementById("address").textContent = addr;
+
+      const network = await provider.getNetwork();
+      document.getElementById("network").textContent =
+        network.name + " (chain " + network.chainId + ")";
+
+      ownerAddr = (await contract.owner()).toLowerCase();
+      if (addr === ownerAddr) {
+        devMenu.style.display = "block";
+      }
+
+      fetchData();
+    } catch (err) {
+      console.error("Wallet connection error:", err);
+      alert("Failed to connect wallet. Check console for details.");
     }
-
-    document.getElementById("network").textContent =
-      network.name + " (chain " + network.chainId + ")";
-
-    ownerAddr = (await contract.owner()).toLowerCase();
-    if (addr === ownerAddr) {
-      devMenu.style.display = "block";
-    }
-
-    fetchData();
-  } catch (err) {
-    console.error("Wallet connection error:", err);
-    alert("Failed to connect wallet. Check console for details.");
-  }
+  });
 });
-
-async function switchToPolygon() {
-  const polygonParams = {
-    chainId: "0x89", // 137 in hex
-    chainName: "Polygon Mainnet",
-    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-    rpcUrls: ["https://polygon-rpc.com/"],
-    blockExplorerUrls: ["https://polygonscan.com/"],
-  };
-
-  try {
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: polygonParams.chainId }],
-    });
-  } catch (switchError) {
-    // If the chain isn’t added yet, add it
-    if (switchError.code === 4902) {
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [polygonParams],
-      });
-    } else {
-      console.error("Network switch error:", switchError);
-    }
-  }
-}
 
 async function fetchData() {
   const addr = await signer.getAddress();
-  const [b, y, v, p, tp] = await Promise.all([
+  const [b, y, v, p] = await Promise.all([
     contract.balanceOf(addr),
     contract.totalSupply(),
     contract.balanceOf(await contract.vault()),
     contract.currentPrice(),
-    contract.totalPurchases(),
   ]);
 
-  const your = +ethers.formatUnits(b, 18);
-  const tot = +ethers.formatUnits(y, 18);
-  const vault = +ethers.formatUnits(v, 18);
-  const price = +ethers.formatUnits(p, 18);
-
-  document.getElementById("yourBalance").textContent = your.toFixed(4);
-  document.getElementById("totalSupply").textContent = tot.toFixed(2);
-  document.getElementById("vaultBalance").textContent = vault.toFixed(2);
-  document.getElementById("circulating").textContent = (tot - vault).toFixed(2);
-  document.getElementById("currentPrice").textContent = price + " MATIC";
-  document.getElementById("numBuys").textContent = await countEvents("TokensPurchased");
-  document.getElementById("numSells").textContent = await countEvents("TokensSold");
+  document.getElementById("yourBalance").textContent =
+    Number(ethers.formatUnits(b, 18)).toFixed(4);
+  document.getElementById("totalSupply").textContent =
+    Number(ethers.formatUnits(y, 18)).toFixed(2);
+  document.getElementById("vaultBalance").textContent =
+    Number(ethers.formatUnits(v, 18)).toFixed(2);
+  document.getElementById("currentPrice").textContent =
+    Number(ethers.formatUnits(p, 18)) + " MATIC";
 }
-
-async function countEvents(ev) {
-  const filter = contract.filters[ev]();
-  const logs = await provider.getLogs({
-    address: CONTRACT_ADDRESS,
-    fromBlock: FROM_BLOCK,
-    toBlock: "latest",
-    topics: filter.topics,
-  });
-  return logs.length;
-}
-
-// === User actions ===
-buyBtn.onclick = async () => {
-  const val = Number(buyAmount.value);
-  if (!val) return alert("Enter amount");
-  const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val), 18) });
-  await tx.wait();
-  fetchData();
-};
-
-sellBtn.onclick = async () => {
-  const amt = await contract.balanceOf(await signer.getAddress());
-  if (amt == 0) return alert("No tokens");
-  const tx = await contract.sellTokens(amt);
-  await tx.wait();
-  fetchData();
-};
-
-// === Dev menu (owner only) ===
-document.getElementById("enableTradingBtn").onclick = async () => {
-  await (await contract.enableTrading(true)).wait();
-  alert("Trading enabled");
-};
-document.getElementById("pauseBtn").onclick = async () => {
-  await (await contract.pause()).wait();
-  alert("Paused");
-};
-document.getElementById("unpauseBtn").onclick = async () => {
-  await (await contract.unpause()).wait();
-  alert("Unpaused");
-};
-document.getElementById("withdrawAllBtn").onclick = async () => {
-  await (await contract.withdrawAllPOL()).wait();
-  alert("Withdrawn");
-};
 </script>
+
 
 
   
