@@ -1,12 +1,126 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="refresh" content="0; url=./splitcoin_frontend.html">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Splitcoin</title>
-  </head>
-  <body>
-    <p>If you are not redirected, <a href="./splitcoin_frontend.html">click here</a>.</p>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SplitCoin (SPLI) — Frontend</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f7fbf7;--card:#fff;--accent:#1f9d63;--muted:#6b7280;font-family:Inter,system-ui,sans-serif;}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:#0f172a}header,footer{max-width:960px;margin:0 auto;padding:16px}
+    .container{max-width:960px;margin:20px auto;padding:16px;display:grid;gap:16px;grid-template-columns:1fr 340px}
+    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+    .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;text-align:center;font-size:13px}
+    .num{font-weight:700;font-size:16px}
+    .muted{color:var(--muted);font-size:13px}
+    @media(max-width:800px){.container{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <h2>SplitCoin (SPLI) — Polygon</h2>
+  <button id="connectBtn" class="btn">Connect Wallet</button>
+</header>
+<div class="container">
+  <div>
+    <div class="card">
+      <div><strong>Address:</strong> <span id="address">—</span></div>
+      <div><strong>Network:</strong> <span id="network">—</span></div>
+      <hr>
+      <div class="stats">
+        <div><div class="num" id="yourBalance">—</div><div>Your SPLI</div></div>
+        <div><div class="num" id="totalSupply">—</div><div>Total Supply</div></div>
+        <div><div class="num" id="vaultBalance">—</div><div>Vault Balance</div></div>
+        <div><div class="num" id="circulating">—</div><div>Circulating</div></div>
+      </div>
+      <div style="margin-top:8px"><strong>Price:</strong> <span id="currentPrice">—</span></div>
+      <div class="stats" style="margin-top:8px">
+        <div><div class="num" id="numBuys">—</div><div>Buys</div></div>
+        <div><div class="num" id="numSells">—</div><div>Sells</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Buy SPLI</h3>
+      <input id="buyAmount" type="number" placeholder="Amount in MATIC" style="width:100%;margin:6px 0;padding:8px">
+      <button id="buyBtn" class="btn">Buy</button>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <h3>Sell SPLI</h3>
+      <button id="sellBtn" class="btn">Sell All</button>
+    </div>
+    <div class="card" id="devMenu" style="display:none">
+      <h3>Developer Menu</h3>
+      <button class="btn" id="enableTradingBtn">Enable Trading</button>
+      <button class="btn" id="pauseBtn">Pause</button>
+      <button class="btn" id="unpauseBtn">Unpause</button>
+      <button class="btn" id="withdrawAllBtn">Withdraw All POL</button>
+    </div>
+  </div>
+</div>
+<footer class="muted" style="text-align:center">Built for SplitCoin — Polygon</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+<script type="module">
+import { Web3Modal } from 'https://unpkg.com/@web3modal/html@3.5.8/dist/index.js';
+
+const CONTRACT_ADDRESS='0x7F065737A1c975a5e037355Bdf33f5E58E4d15B0';
+const FROM_BLOCK=78763451;
+const ABI=[
+"function balanceOf(address) view returns (uint256)","function totalSupply() view returns (uint256)","function vault() view returns (address)","function currentPrice() view returns (uint256)","function totalPurchases() view returns (uint256)","function buyTokens() payable","function sellTokens(uint256)","function owner() view returns(address)","function enableTrading(bool)","function pause()","function unpause()","function withdrawAllPOL()","event TokensPurchased(address,uint256,uint256,uint256)","event TokensSold(address,uint256,uint256,uint256)"];
+
+let provider,signer,contract,ownerAddr;
+const connectBtn=document.getElementById('connectBtn');
+const devMenu=document.getElementById('devMenu');
+
+const web3Modal=new Web3Modal({projectId:'splitcoin-demo',themeMode:'light'});
+
+connectBtn.addEventListener('click',async()=>{
+  const instance=await web3Modal.connect();
+  provider=new ethers.BrowserProvider(instance);
+  signer=await provider.getSigner();
+  contract=new ethers.Contract(CONTRACT_ADDRESS,ABI,signer);
+  ownerAddr=(await contract.owner()).toLowerCase();
+  const addr=(await signer.getAddress()).toLowerCase();
+  document.getElementById('address').textContent=addr;
+  const network=await provider.getNetwork();
+  document.getElementById('network').textContent=network.name;
+  if(addr===ownerAddr){devMenu.style.display='block';}
+  fetchData();
+});
+
+async function fetchData(){
+  const addr=await signer.getAddress();
+  const [b,y,v,p,tp]=await Promise.all([
+    contract.balanceOf(addr),contract.totalSupply(),contract.balanceOf(await contract.vault()),contract.currentPrice(),contract.totalPurchases()
+  ]);
+  const your=+ethers.formatUnits(b,18);const tot=+ethers.formatUnits(y,18);const vault=+ethers.formatUnits(v,18);const price=+ethers.formatUnits(p,18);
+  document.getElementById('yourBalance').textContent=your.toFixed(4);
+  document.getElementById('totalSupply').textContent=tot.toFixed(2);
+  document.getElementById('vaultBalance').textContent=vault.toFixed(2);
+  document.getElementById('circulating').textContent=(tot-vault).toFixed(2);
+  document.getElementById('currentPrice').textContent=price+" MATIC";
+  document.getElementById('numBuys').textContent=await countEvents('TokensPurchased');
+  document.getElementById('numSells').textContent=await countEvents('TokensSold');
+}
+
+async function countEvents(ev){
+  const filter=contract.filters[ev]();
+  const logs=await provider.getLogs({address:CONTRACT_ADDRESS,fromBlock:FROM_BLOCK,toBlock:'latest',topics:filter.topics});
+  return logs.length;
+}
+
+// actions
+buyBtn.onclick=async()=>{const val=Number(buyAmount.value);if(!val)return alert('Enter amount');const tx=await contract.buyTokens({value:ethers.parseUnits(String(val),18)});await tx.wait();fetchData();};
+sellBtn.onclick=async()=>{const amt=await contract.balanceOf(await signer.getAddress());if(amt==0)return alert('No tokens');const tx=await contract.sellTokens(amt);await tx.wait();fetchData();};
+
+document.getElementById('enableTradingBtn').onclick=async()=>{await (await contract.enableTrading(true)).wait();alert('Trading enabled');};
+document.getElementById('pauseBtn').onclick=async()=>{await (await contract.pause()).wait();alert('Paused');};
+document.getElementById('unpauseBtn').onclick=async()=>{await (await contract.unpause()).wait();alert('Unpaused');};
+document.getElementById('withdrawAllBtn').onclick=async()=>{await (await contract.withdrawAllPOL()).wait();alert('Withdrawn');};
+</script>
+</body>
 </html>
