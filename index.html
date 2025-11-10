@@ -28,9 +28,6 @@
     .muted { color: var(--muted); font-size: 13px; }
     .input-group { display:flex; gap:8px; align-items:center; }
     input[type="number"] { padding:8px; border-radius:8px; border:1px solid #ddd; width:100%; }
-    .about { max-width: 960px; margin:20px auto; padding:16px; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); line-height:1.5; }
-    .about h3 { margin-top:0; color:var(--accent); }
-    .about ul { padding-left:20px; }
     @media(max-width:800px){ .container{ grid-template-columns:1fr } }
   </style>
 </head>
@@ -86,9 +83,21 @@
   </div>
 </div>
 
-<div class="card about">
-  <h2>About SplitCoin (SPLI)</h2>
-  <p>Your description text remains unchanged.</p>
+<div class="card" style="max-width:960px;margin:20px auto;line-height:1.55;">
+  <h2 style="color:var(--accent);margin-top:0;">About SplitCoin (SPLI)</h2>
+
+  <p><strong>Our Vision:</strong> When we make money, you make money too! SplitCoin brings people together to profit from quick, strategic moves. Each purchase instantly locks in a 25% profit — your position will never be worth less, but will also never be worth more. The vault burns an equal amount of tokens with every purchase to maintain supply control and stabilize price. The goal becomes to cash out as quickly as possible, which can happen as soon as another purchase is made by someone else. Once you sell, you can buy in again, aiming for the next fast cashout. This model rewards speed, strategy, and participation in the community-driven liquidity cycle.</p>
+
+  <p><strong>Mechanics:</strong> SplitCoin (SPLI) is a novel approach to asset trading. Typically, stocks or crypto are held for long periods while value slowly increases. With SPLI, buying a token instantly locks in a 25% profit — your position will never be worth less, but will also never be worth more. The vault burns an equal amount of tokens with every purchase to maintain supply control and stabilize price. The goal becomes to cash out as quickly as possible, which can happen as soon as another purchase is made by someone else. Once you sell, you can buy in again.</p>
+
+  <ul>
+    <li>Buy SPLI to lock in a guaranteed 25% gain instantly.</li>
+    <li>No trading between holders — only to and from the vault.</li>
+    <li>Full exits only: sell your entire position.</li>
+    <li>Single entry per cycle: must sell before buying again.</li>
+    <li>Liquidity protections prevent draining or abuse.</li>
+    <li>Owner may provide additional liquidity if needed.</li>
+  </ul>
 </div>
 
 <footer class="muted" style="text-align:center; padding:18px 0;">
@@ -100,7 +109,6 @@
 
 <script>
 const CONTRACT_ADDRESS = "0x6E58bb9D89175c9d2a648f6ED7BF4ed9Bd45E8a9";
-
 const ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
@@ -121,50 +129,53 @@ const ABI = [
 
 const WC_PROJECT_ID = "a38499ec874228017b4bf3f6d342dcb4";
 
-let provider = null, signer = null, contract = null;
+let provider, signer, contract;
 
-async function connectMetaMask() {
-  if (!window.ethereum) return alert("Please install MetaMask!");
-  await window.ethereum.request({ method: "eth_requestAccounts" });
+function short(addr){ return addr.slice(0,6)+"..."+addr.slice(-4); }
+
+async function connectMetaMask(){
+  if(!window.ethereum) return alert("Install MetaMask");
+  await ethereum.request({ method:"eth_requestAccounts" });
   provider = new ethers.BrowserProvider(window.ethereum);
-  await setup();
+  setup();
 }
 
-async function connectWalletConnect() {
-  const wcProvider = await window.WalletConnectEthereumProvider.init({
+async function connectWalletConnect(){
+  const WalletConnectProvider =
+    window.WalletConnectEthereumProvider ??
+    window.WalletConnectProvider?.default;
+
+  const wc = await WalletConnectProvider.init({
     projectId: WC_PROJECT_ID,
     chains: [137],
-    optionalChains: [137],
     showQrModal: true,
     rpcMap: { 137: "https://polygon-rpc.com" }
   });
 
-  await wcProvider.enable();
-  provider = new ethers.BrowserProvider(wcProvider);
-  await setup();
+  await wc.enable();
+  provider = new ethers.BrowserProvider(wc);
+  setup();
 }
 
-async function setup() {
+async function setup(){
   signer = await provider.getSigner();
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
-  const addr = (await signer.getAddress()).toLowerCase();
-  document.getElementById("address").textContent = addr.slice(0,6)+"..."+addr.slice(-4);
-
+  const addr = await signer.getAddress();
+  document.getElementById("address").textContent = short(addr);
   document.getElementById("network").textContent = "Polygon (chain 137)";
-  if ((await provider.getNetwork()).chainId !== 137) alert("Switch to Polygon!");
 
-  if ((await contract.owner()).toLowerCase() === addr) document.getElementById("devMenu").style.display = "block";
+  try { if((await contract.owner()).toLowerCase() === addr.toLowerCase()) document.getElementById("devMenu").style.display="block"; } catch(e){}
 
-  await refresh();
-  contract.on("TokensPurchased", refresh);
-  contract.on("TokensSold", refresh);
+  fetchData();
+  contract.on("TokensPurchased", fetchData);
+  contract.on("TokensSold", fetchData);
 }
 
-async function refresh() {
+async function fetchData(){
   const addr = await signer.getAddress();
   const vaultAddr = await contract.vault();
-  const [bal, supply, vaultBal, price, total, idx] = await Promise.all([
+  const [b,y,v,p,tp,pi] = await Promise.all([
     contract.balanceOf(addr),
     contract.totalSupply(),
     contract.balanceOf(vaultAddr),
@@ -173,41 +184,37 @@ async function refresh() {
     contract.purchaseIndex(addr)
   ]);
 
-  const fmt = (x) => Number(ethers.formatUnits(x,18)).toFixed(4);
-
-  document.getElementById("yourBalance").textContent = fmt(bal);
-  document.getElementById("totalSupply").textContent = fmt(supply);
-  document.getElementById("vaultBalance").textContent = fmt(vaultBal);
-  document.getElementById("circulating").textContent = fmt(supply - vaultBal);
-  document.getElementById("currentPrice").textContent = fmt(price) + " MATIC";
-  document.getElementById("canSell").textContent = total > idx ? "✅ Yes" : "❌ No";
+  document.getElementById("yourBalance").textContent = Number(ethers.formatUnits(b,18)).toFixed(4);
+  document.getElementById("totalSupply").textContent = Number(ethers.formatUnits(y,18)).toFixed(2);
+  document.getElementById("vaultBalance").textContent = Number(ethers.formatUnits(v,18)).toFixed(2);
+  document.getElementById("circulating").textContent = Number(ethers.formatUnits(y-v,18)).toFixed(2);
+  document.getElementById("currentPrice").textContent = Number(ethers.formatUnits(p,18))+" MATIC";
+  document.getElementById("canSell").textContent = tp > pi ? "✅ Yes" : "❌ No";
 }
 
 document.getElementById("connectMetaMask").onclick = connectMetaMask;
 document.getElementById("connectWC").onclick = connectWalletConnect;
 
-document.getElementById("buyBtn").onclick = async () => {
-  const val = document.getElementById("buyAmount").value;
-  if (!val || val <= 0) return alert("Enter an amount");
-  const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val), 18) });
-  await tx.wait();
-  refresh();
+document.getElementById("buyBtn").onclick = async()=>{
+  const val = Number(buyAmount.value);
+  if(!val) return;
+  const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val),18) });
+  await tx.wait(); fetchData();
 };
 
-document.getElementById("sellBtn").onclick = async () => {
+document.getElementById("sellBtn").onclick = async()=>{
   const amt = await contract.balanceOf(await signer.getAddress());
-  if (amt == 0n) return alert("No SPLI to sell");
+  if(amt == 0n) return alert("No SPLI");
   const tx = await contract.sellTokens(amt);
-  await tx.wait();
-  refresh();
+  await tx.wait(); fetchData();
 };
 
-document.getElementById("enableTradingBtn").onclick = async () => { await (await contract.enableTrading(true)).wait(); refresh(); };
-document.getElementById("pauseBtn").onclick = async () => { await (await contract.pause()).wait(); refresh(); };
-document.getElementById("unpauseBtn").onclick = async () => { await (await contract.unpause()).wait(); refresh(); };
-document.getElementById("withdrawAllBtn").onclick = async () => { await (await contract.withdrawAllPOL()).wait(); refresh(); };
+enableTradingBtn.onclick = async()=>{ await (await contract.enableTrading(true)).wait(); };
+pauseBtn.onclick = async()=>{ await (await contract.pause()).wait(); };
+unpauseBtn.onclick = async()=>{ await (await contract.unpause()).wait(); };
+withdrawAllBtn.onclick = async()=>{ await (await contract.withdrawAllPOL()).wait(); };
 
-setInterval(() => { if (contract) refresh(); }, 15000);
+setInterval(()=>{ if(contract) fetchData(); },15000);
 </script>
 </body>
 </html>
