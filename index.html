@@ -129,9 +129,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.min.js"></script>
 <script>
 const CONTRACT_ADDRESS = "0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F";
-const WC_PROJECT_ID = "a38499ec874228017b4bf3f6d342dcb4";
+const WC_PROJECT_ID = "a38499ec874228017b4bf3f3f6d342dcb4"; // keep your id
 const ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
@@ -156,26 +158,54 @@ const ABI = [
 let provider, signer, contract;
 const msgBox = document.getElementById("messageBox");
 
+// --- explicit DOM references (fixes implicit-global issues) ---
+const connectMetaMaskBtn = document.getElementById("connectMetaMask");
+const connectWCBtn = document.getElementById("connectWC");
+const buyBtn = document.getElementById("buyBtn");
+const buyAmountInput = document.getElementById("buyAmount");
+const sellBtn = document.getElementById("sellBtn");
+const enableTradingBtn = document.getElementById("enableTradingBtn");
+const disableTradingBtn = document.getElementById("disableTradingBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const unpauseBtn = document.getElementById("unpauseBtn");
+const liqAmount = document.getElementById("liqAmount");
+const addLiquidityBtn = document.getElementById("addLiquidityBtn");
+const wdAmount = document.getElementById("wdAmount");
+const withdrawPOLBtn = document.getElementById("withdrawPOLBtn");
+const withdrawAllBtn = document.getElementById("withdrawAllBtn");
+const vaultRecipient = document.getElementById("vaultRecipient");
+const vaultAmount = document.getElementById("vaultAmount");
+const transferVaultBtn = document.getElementById("transferVaultBtn");
+
+// simple UI helpers
 function showMsg(text,type="info"){ msgBox.textContent=text; msgBox.className="msg "+type; msgBox.style.display="block"; }
 function short(addr){ return addr.slice(0,6)+"..."+addr.slice(-4); }
 
+// load public price (no wallet)
 async function loadPricePublic(){
   try{
     const rpc = new ethers.JsonRpcProvider("https://polygon-rpc.com");
     const c = new ethers.Contract(CONTRACT_ADDRESS, ABI, rpc);
     const p = await c.currentPrice();
     document.getElementById("currentPrice").textContent = Number(ethers.formatUnits(p,18)).toFixed(6)+" MATIC";
-  }catch(e){ document.getElementById("currentPrice").textContent="—"; }
+  }catch(e){
+    console.error("loadPricePublic error", e);
+    document.getElementById("currentPrice").textContent="—";
+  }
 }
 loadPricePublic();
 
+// --- wallet/connect functions ---
 async function connectMetaMask(){
   if(!window.ethereum) return showMsg("Please install MetaMask","error");
   try{
     await ethereum.request({ method:"eth_requestAccounts" });
     provider = new ethers.BrowserProvider(window.ethereum);
-    setup("MetaMask");
-  }catch(e){ showMsg(e.message,"error"); }
+    await setup("MetaMask");
+  }catch(e){
+    console.error("MetaMask connect error", e);
+    showMsg(e.message || "MetaMask connect failed","error");
+  }
 }
 
 async function connectWalletConnect(){
@@ -187,35 +217,54 @@ async function connectWalletConnect(){
       showQrModal:true,
       rpcMap:{137:"https://polygon-rpc.com"}
     });
+    // enable returns a promise; propagate errors
     await wc.enable();
+    // wc is an EIP-1193 provider compatible object — works with ethers.BrowserProvider
     provider = new ethers.BrowserProvider(wc);
-    setup("WalletConnect");
-  }catch(e){ showMsg("WalletConnect error: "+e.message,"error"); }
+    await setup("WalletConnect");
+  }catch(e){
+    console.error("WalletConnect error", e);
+    showMsg("WalletConnect error: "+(e.message||e.toString()),"error");
+  }
 }
 
 async function setup(src){
-  signer = await provider.getSigner();
-  contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-  const addr = await signer.getAddress();
-  document.getElementById("address").textContent = short(addr);
-  document.getElementById("network").textContent = "Polygon (chain 137)";
-  document.getElementById("connectMetaMask").textContent = src==="MetaMask"?"🦊 Connected ✅":"🦊 MetaMask";
-  document.getElementById("connectWC").textContent = src==="WalletConnect"?"🔗 Connected ✅":"🔗 WalletConnect";
-  document.getElementById("connectMetaMask").disabled = true;
-  document.getElementById("connectWC").disabled = true;
   try{
-    const owner = await contract.owner();
-    if(owner.toLowerCase() === addr.toLowerCase())
-      document.getElementById("devMenu").style.display="block";
-  }catch{}
-  showMsg("Wallet connected via "+src,"success");
-  fetchData();
-  contract.on("TokensPurchased", fetchData);
-  contract.on("TokensSold", fetchData);
+    signer = await provider.getSigner();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    const addr = await signer.getAddress();
+    document.getElementById("address").textContent = short(addr);
+    document.getElementById("network").textContent = "Polygon (chain 137)";
+    connectMetaMaskBtn.textContent = src==="MetaMask" ? "🦊 Connected ✅" : "🦊 MetaMask";
+    connectWCBtn.textContent = src==="WalletConnect" ? "🔗 Connected ✅" : "🔗 WalletConnect";
+    connectMetaMaskBtn.disabled = true;
+    connectWCBtn.disabled = true;
+
+    // dev menu check
+    try{
+      const owner = await contract.owner();
+      if(owner.toLowerCase() === addr.toLowerCase()) document.getElementById("devMenu").style.display="block";
+    }catch(e){ console.warn("owner check failed", e); }
+
+    showMsg("Wallet connected via "+src,"success");
+    fetchData();
+
+    // ensure we don't attach duplicate listeners
+    try { contract.removeAllListeners("TokensPurchased"); contract.removeAllListeners("TokensSold"); } catch (e) {}
+    contract.on("TokensPurchased", fetchData);
+    contract.on("TokensSold", fetchData);
+
+  }catch(e){
+    console.error("setup error", e);
+    showMsg("Setup error: "+(e.message||e.toString()),"error");
+  }
 }
 
+// --- fetch & display data ---
 async function fetchData(){
   try{
+    if(!contract || !signer) return loadPricePublic();
     const addr = await signer.getAddress();
     const vaultAddr = await contract.vault();
     const [b,y,v,p,tp,pi] = await Promise.all([
@@ -232,43 +281,65 @@ async function fetchData(){
     document.getElementById("circulating").textContent = Number(ethers.formatUnits(y-v,18)).toFixed(2);
     document.getElementById("currentPrice").textContent = Number(ethers.formatUnits(p,18)).toFixed(6)+" MATIC";
     document.getElementById("canSell").textContent = tp > pi ? "✅ Yes" : "❌ No";
-  }catch(e){ showMsg("Error fetching data: "+e.message,"error"); }
+  }catch(e){
+    console.error("fetchData error", e);
+    showMsg("Error fetching data: "+(e.message||e.toString()),"error");
+  }
 }
 
-document.getElementById("connectMetaMask").onclick = connectMetaMask;
-document.getElementById("connectWC").onclick = connectWalletConnect;
+// --- button actions (use explicit DOM refs) ---
+connectMetaMaskBtn.onclick = connectMetaMask;
+connectWCBtn.onclick = connectWalletConnect;
 
-document.getElementById("buyBtn").onclick = async()=>{
+buyBtn.onclick = async()=>{
   try{
-    const val = Number(buyAmount.value);
-    if(!val) return showMsg("Enter POL amount","error");
-    const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val),18) });
+    const valStr = buyAmountInput.value;
+    if(!valStr || Number(valStr) <= 0) return showMsg("Enter POL amount > 0","error");
+    const value = ethers.parseUnits(String(valStr),18);
+    const tx = await contract.buyTokens({ value });
     showMsg("Buying tokens...","info");
-    await tx.wait(); showMsg("Buy successful!","success"); fetchData();
-  }catch(e){ showMsg("Buy failed: "+(e.info?.error?.message||e.message),"error"); }
+    await tx.wait();
+    showMsg("Buy successful!","success");
+    fetchData();
+  }catch(e){
+    console.error("Buy failed", e);
+    // try to give user meaningful message
+    const userMsg = e?.info?.error?.message || e?.data?.message || e?.message || "Buy failed";
+    showMsg("Buy failed: "+userMsg,"error");
+  }
 };
 
-document.getElementById("sellBtn").onclick = async()=>{
+sellBtn.onclick = async()=>{
   try{
-    const amt = await contract.balanceOf(await signer.getAddress());
-    if(amt==0n) return showMsg("No SPLI to sell","error");
+    const addr = await signer.getAddress();
+    const amt = await contract.balanceOf(addr);
+    if(amt === 0n) return showMsg("No SPLI to sell","error");
+    // pass BigInt directly (ethers accepts BigInt)
     const tx = await contract.sellTokens(amt);
     showMsg("Selling tokens...","info");
-    await tx.wait(); showMsg("Sell complete","success"); fetchData();
-  }catch(e){ showMsg("Sell failed: "+(e.info?.error?.message||e.message),"error"); }
+    await tx.wait();
+    showMsg("Sell complete","success");
+    fetchData();
+  }catch(e){
+    console.error("Sell failed", e);
+    const userMsg = e?.info?.error?.message || e?.data?.message || e?.message || "Sell failed";
+    showMsg("Sell failed: "+userMsg,"error");
+  }
 };
 
-// --- Dev menu actions ---
-enableTradingBtn.onclick = async()=>{ try{await (await contract.enableTrading(true)).wait();showMsg("Trading enabled","success");}catch(e){showMsg(e.message,"error");}};
-disableTradingBtn.onclick = async()=>{ try{await (await contract.enableTrading(false)).wait();showMsg("Trading disabled","success");}catch(e){showMsg(e.message,"error");}};
-pauseBtn.onclick = async()=>{ try{await (await contract.pause()).wait();showMsg("Contract paused","success");}catch(e){showMsg(e.message,"error");}};
-unpauseBtn.onclick = async()=>{ try{await (await contract.unpause()).wait();showMsg("Contract unpaused","success");}catch(e){showMsg(e.message,"error");}};
-addLiquidityBtn.onclick = async()=>{ try{const amt=liqAmount.value;if(!amt)return showMsg("Enter POL amount","error");await (await contract.addLiquidity({value:ethers.parseUnits(String(amt),18)})).wait();showMsg("Liquidity added","success");}catch(e){showMsg(e.message,"error");}};
-withdrawPOLBtn.onclick = async()=>{ try{const amt=wdAmount.value;if(!amt)return showMsg("Enter amount","error");await (await contract.withdrawPOL(ethers.parseUnits(String(amt),18))).wait();showMsg("POL withdrawn","success");}catch(e){showMsg(e.message,"error");}};
-withdrawAllBtn.onclick = async()=>{ try{await (await contract.withdrawAllPOL()).wait();showMsg("All POL withdrawn","success");}catch(e){showMsg(e.message,"error");}};
-transferVaultBtn.onclick = async()=>{ try{const r=vaultRecipient.value,a=vaultAmount.value;if(!r||!a)return showMsg("Enter recipient and amount","error");await (await contract.transferFromVault(r,ethers.parseUnits(String(a),18))).wait();showMsg("Transfer from vault complete","success");}catch(e){showMsg(e.message,"error");}};
+// --- dev menu actions (explicit refs) ---
+if(enableTradingBtn) enableTradingBtn.onclick = async()=>{ try{ await (await contract.enableTrading(true)).wait(); showMsg("Trading enabled","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(disableTradingBtn) disableTradingBtn.onclick = async()=>{ try{ await (await contract.enableTrading(false)).wait(); showMsg("Trading disabled","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(pauseBtn) pauseBtn.onclick = async()=>{ try{ await (await contract.pause()).wait(); showMsg("Contract paused","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(unpauseBtn) unpauseBtn.onclick = async()=>{ try{ await (await contract.unpause()).wait(); showMsg("Contract unpaused","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(addLiquidityBtn) addLiquidityBtn.onclick = async()=>{ try{ const amt = liqAmount.value; if(!amt) return showMsg("Enter POL amount","error"); await (await contract.addLiquidity({ value: ethers.parseUnits(String(amt),18) })).wait(); showMsg("Liquidity added","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(withdrawPOLBtn) withdrawPOLBtn.onclick = async()=>{ try{ const amt = wdAmount.value; if(!amt) return showMsg("Enter amount","error"); await (await contract.withdrawPOL(ethers.parseUnits(String(amt),18))).wait(); showMsg("POL withdrawn","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(withdrawAllBtn) withdrawAllBtn.onclick = async()=>{ try{ await (await contract.withdrawAllPOL()).wait(); showMsg("All POL withdrawn","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
+if(transferVaultBtn) transferVaultBtn.onclick = async()=>{ try{ const r = vaultRecipient.value; const a = vaultAmount.value; if(!r||!a) return showMsg("Enter recipient and amount","error"); await (await contract.transferFromVault(r, ethers.parseUnits(String(a),18))).wait(); showMsg("Transfer from vault complete","success"); }catch(e){ console.error(e); showMsg(e.message || "Error","error"); } };
 
+// refresh loop
 setInterval(()=>{ if(contract) fetchData(); else loadPricePublic(); },15000);
 </script>
+
 </body>
 </html>
