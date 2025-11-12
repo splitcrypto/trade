@@ -113,11 +113,9 @@
   Built for SplitCoin — Polygon Network
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+<!-- ✅ Correct WalletConnect build -->
 <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.umd.min.js"></script>
-<!-- ✅ FIXED: use jsDelivr CDN (correct MIME type) -->
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js"></script>
-<script>
-<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js"></script>
 <script>
 const CONTRACT_ADDRESS = "0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F";
 const WC_PROJECT_ID = "a38499ec874228017b4bf3f6d342dcb4";
@@ -166,16 +164,16 @@ async function connectMetaMask(){
   }catch(e){ showMsg(e.message,"error"); }
 }
 
-/* ✅ FIXED connectWalletConnect() */
+/* ✅ Working WalletConnect */
 async function connectWalletConnect(){
-  try{
-    const WalletConnectProvider = window.WalletConnectEthereumProvider;
-    if(!WalletConnectProvider) {
-      showMsg("WalletConnect not loaded","error");
+  try {
+    const WCProviderLib = window.WalletConnectEthereumProvider?.default || window.WalletConnectEthereumProvider;
+    if (!WCProviderLib) {
+      showMsg("WalletConnect script not loaded","error");
       return;
     }
 
-    const wc = await WalletConnectProvider.init({
+    const wc = await WCProviderLib.init({
       projectId: WC_PROJECT_ID,
       chains: [137],
       showQrModal: true,
@@ -185,8 +183,8 @@ async function connectWalletConnect(){
     await wc.enable();
     provider = new ethers.BrowserProvider(wc);
     setup("WalletConnect");
-  }catch(e){
-    showMsg("WalletConnect error: "+(e.message||e),"error");
+  } catch (e) {
+    showMsg("WalletConnect error: " + (e.message || e), "error");
     console.error("WalletConnect error:", e);
   }
 }
