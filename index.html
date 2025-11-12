@@ -1,269 +1,102 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SplitCoin (SPLI) — Polygon</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SplitCrypto Trade</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
   <style>
-    :root {
-      --bg: #f7fbf7;
-      --card: #ffffff;
-      --accent: #1f9d63;
-      --muted: #6b7280;
-      --error: #e74c3c;
-      --success: #1abc9c;
-      font-family: Inter, system-ui, sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: #0f172a; }
-    header, footer {
-      max-width: 960px; margin: 0 auto; padding: 16px;
-      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-    }
-    .container { max-width: 960px; margin: 20px auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: 1fr 340px; }
-    .card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 600; transition: opacity .15s; }
-    .btn[disabled] { opacity: .6; cursor: not-allowed; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px,1fr)); gap: 8px; text-align: center; font-size: 13px; }
-    .num { font-weight: 700; font-size: 16px; }
-    .muted { color: var(--muted); font-size: 13px; }
-    .input-group { display:flex; gap:8px; align-items:center; }
-    input[type="number"], input[type="text"] { padding:8px; border-radius:8px; border:1px solid #ddd; width:100%; }
-    .msg { max-width:960px; margin:10px auto; padding:10px 14px; border-radius:8px; display:none; }
-    .msg.error { background:#fdecea; color:var(--error); display:block; }
-    .msg.success { background:#e8f8f5; color:var(--success); display:block; }
-    .msg.info { background:#eef2ff; color:#374151; display:block; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    @media(max-width:800px){ .container{ grid-template-columns:1fr } }
+    body { font-family: Arial, sans-serif; background: #0c0c0c; color: #f0f0f0; text-align: center; padding: 20px; }
+    h1 { color: #00ffa2; }
+    button { margin: 8px; padding: 10px 18px; font-size: 16px; cursor: pointer; border: none; border-radius: 8px; background: #00ffa2; color: #000; font-weight: bold; }
+    button:hover { background: #00cc80; }
+    #msg { margin-top: 20px; min-height: 24px; font-size: 15px; color: #ff7070; }
   </style>
 </head>
 <body>
-
-<header>
-  <h2>SplitCoin (SPLI) — Polygon</h2>
+  <h1>SplitCrypto Trade</h1>
   <div>
-    <button id="connectMetaMask" class="btn">🦊 MetaMask</button>
-    <button id="connectWC" class="btn">🔗 WalletConnect</button>
-  </div>
-</header>
-
-<div id="messageBox" class="msg info">Welcome to SplitCoin — connect your wallet to begin.</div>
-
-<div class="container">
-  <div>
-    <div class="card">
-      <div><strong>Address:</strong> <span id="address">—</span></div>
-      <div><strong>Network:</strong> <span id="network">—</span></div>
-      <hr>
-      <div class="stats">
-        <div><div class="num" id="yourBalance">—</div><div>Your SPLI</div></div>
-        <div><div class="num" id="totalSupply">—</div><div>Total Supply</div></div>
-        <div><div class="num" id="vaultBalance">—</div><div>Vault</div></div>
-        <div><div class="num" id="circulating">—</div><div>Circulating</div></div>
-        <div><div class="num" id="canSell">—</div><div>Can Sell?</div></div>
-      </div>
-      <div style="margin-top:8px"><strong>Price:</strong> <span id="currentPrice">Loading...</span></div>
-      <div style="margin-top:8px"><strong>Contract:</strong>
-        <a id="contractLink" href="https://polygonscan.com/address/0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F" target="_blank">
-          0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F
-        </a>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Buy SPLI</h3>
-      <div class="input-group" style="margin:8px 0;">
-        <input id="buyAmount" type="number" placeholder="Amount" min="0" step="any" />
-        <div style="font-weight:600">POL (MATIC)</div>
-      </div>
-      <button id="buyBtn" class="btn">Buy</button>
-    </div>
+    <button onclick="connectMetaMask()">🔗 MetaMask</button>
+    <button onclick="connectWalletConnect()">🔗 WalletConnect</button>
   </div>
 
   <div>
-    <div class="card">
-      <h3>Sell SPLI</h3>
-      <button id="sellBtn" class="btn">Sell All</button>
-    </div>
-
-    <div class="card" id="devMenu" style="display:none">
-      <h3>Developer Menu</h3>
-      <div class="input-group"><button class="btn" id="enableTradingBtn">Enable Trading</button><button class="btn" id="disableTradingBtn">Disable Trading</button></div>
-      <div class="input-group"><button class="btn" id="pauseBtn">Pause</button><button class="btn" id="unpauseBtn">Unpause</button></div>
-      <hr>
-      <div class="input-group"><input id="liqAmount" type="number" placeholder="POL to add"><button class="btn" id="addLiquidityBtn">Add Liquidity</button></div>
-      <div class="input-group"><input id="wdAmount" type="number" placeholder="POL to withdraw"><button class="btn" id="withdrawPOLBtn">Withdraw POL</button></div>
-      <button class="btn" id="withdrawAllBtn">Withdraw All POL</button>
-      <hr>
-      <div class="input-group"><input id="vaultRecipient" type="text" placeholder="Recipient address"></div>
-      <div class="input-group"><input id="vaultAmount" type="number" placeholder="Token amount"><button class="btn" id="transferVaultBtn">Transfer From Vault</button></div>
-    </div>
+    <button onclick="buy()">Buy</button>
+    <button onclick="sell()">Sell</button>
   </div>
-</div>
 
-<div class="card" style="max-width:960px;margin:20px auto;line-height:1.55;">
-  <h2 style="color:var(--accent);margin-top:0;">About SplitCoin (SPLI)</h2>
-  <p><strong>Our Vision:</strong> When we make money, you make money too! SplitCoin brings people together to profit from quick, strategic moves. Each purchase instantly locks in gains for the buyer, creating opportunities for fast cashouts while everyone participates in the action.</p>
-  <p><strong>Mechanics:</strong> SplitCoin (SPLI) is a novel approach to asset trading...</p>
-</div>
+  <div id="msg"></div>
 
-<footer class="muted" style="text-align:center; padding:18px 0;">
-  Built for SplitCoin — Polygon Network
-</footer>
+  <script>
+    const CONTRACT_ADDRESS = "0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F";
+    const WC_PROJECT_ID = "a38499ec874228017b4bf3f6d342dcb4";
+    let provider, signer, contract;
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-<!-- ✅ FIXED: use UMD WalletConnect build -->
-<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js"></script>
-<script>
-const CONTRACT_ADDRESS = "0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F";
-const WC_PROJECT_ID = "a38499ec874228017b4bf3f6d342dcb4";
-const ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function totalSupply() view returns (uint256)",
-  "function vault() view returns (address)",
-  "function currentPrice() view returns (uint256)",
-  "function totalPurchases() view returns (uint256)",
-  "function purchaseIndex(address) view returns (uint256)",
-  "function buyTokens() payable",
-  "function sellTokens(uint256)",
-  "function owner() view returns(address)",
-  "function enableTrading(bool)",
-  "function pause()",
-  "function unpause()",
-  "function addLiquidity() payable",
-  "function withdrawPOL(uint256)",
-  "function withdrawAllPOL()",
-  "function transferFromVault(address,uint256)",
-  "event TokensPurchased(address,uint256,uint256,uint256)",
-  "event TokensSold(address,uint256,uint256,uint256)"
-];
-
-let provider, signer, contract;
-const msgBox = document.getElementById("messageBox");
-function showMsg(text,type="info"){ msgBox.textContent=text; msgBox.className="msg "+type; msgBox.style.display="block"; }
-function short(addr){ return addr.slice(0,6)+"..."+addr.slice(-4); }
-
-async function loadPricePublic(){
-  try{
-    const rpc = new ethers.JsonRpcProvider("https://polygon-rpc.com");
-    const c = new ethers.Contract(CONTRACT_ADDRESS, ABI, rpc);
-    const p = await c.currentPrice();
-    document.getElementById("currentPrice").textContent = Number(ethers.formatUnits(p,18)).toFixed(6)+" MATIC";
-  }catch{ document.getElementById("currentPrice").textContent="—"; }
-}
-loadPricePublic();
-
-async function connectMetaMask(){
-  if(!window.ethereum) return showMsg("Please install MetaMask","error");
-  try{
-    await ethereum.request({ method:"eth_requestAccounts" });
-    provider = new ethers.BrowserProvider(window.ethereum);
-    setup("MetaMask");
-  }catch(e){ showMsg(e.message,"error"); }
-}
-
-/* ✅ FIXED connectWalletConnect() */
-async function connectWalletConnect(){
-  try{
-    const WalletConnectProvider = window.WalletConnectEthereumProvider;
-    if(!WalletConnectProvider) {
-      showMsg("WalletConnect not loaded","error");
-      return;
+    async function connectMetaMask(){
+      try {
+        if(!window.ethereum) return showMsg("MetaMask not found","error");
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        provider = new ethers.BrowserProvider(window.ethereum);
+        setup("MetaMask");
+      } catch(e){ showMsg("MetaMask error: "+e.message,"error"); }
     }
 
-    const wc = await WalletConnectProvider.init({
-      projectId: WC_PROJECT_ID,
-      chains: [137],
-      showQrModal: true,
-      rpcMap: {137: "https://polygon-rpc.com"}
-    });
+    async function connectWalletConnect(){
+      try{
+        const WalletConnectProvider = window.WalletConnectEthereumProvider;
+        if(!WalletConnectProvider) {
+          showMsg("WalletConnect not loaded","error");
+          return;
+        }
 
-    await wc.enable();
-    provider = new ethers.BrowserProvider(wc);
-    setup("WalletConnect");
-  }catch(e){
-    showMsg("WalletConnect error: "+(e.message||e),"error");
-    console.error("WalletConnect error:", e);
-  }
-}
+        const wc = await WalletConnectProvider.init({
+          projectId: WC_PROJECT_ID,
+          chains: [137],
+          showQrModal: true,
+          rpcMap: {137: "https://polygon-rpc.com"}
+        });
 
-async function setup(src){
-  signer = await provider.getSigner();
-  contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-  const addr = await signer.getAddress();
-  document.getElementById("address").textContent = short(addr);
-  document.getElementById("network").textContent = "Polygon (chain 137)";
-  document.getElementById("connectMetaMask").textContent = src==="MetaMask"?"🦊 Connected ✅":"🦊 MetaMask";
-  document.getElementById("connectWC").textContent = src==="WalletConnect"?"🔗 Connected ✅":"🔗 WalletConnect";
-  document.getElementById("connectMetaMask").disabled = true;
-  document.getElementById("connectWC").disabled = true;
-  try{
-    const owner = await contract.owner();
-    if(owner.toLowerCase() === addr.toLowerCase()) document.getElementById("devMenu").style.display="block";
-  }catch{}
-  showMsg("Wallet connected via "+src,"success");
-  fetchData();
-  contract.on("TokensPurchased", fetchData);
-  contract.on("TokensSold", fetchData);
-}
+        await wc.enable();
+        provider = new ethers.BrowserProvider(wc);
+        setup("WalletConnect");
+      }catch(e){
+        showMsg("WalletConnect error: "+(e.message||e),"error");
+        console.error("WalletConnect error:", e);
+      }
+    }
 
-async function fetchData(){
-  try{
-    const addr = await signer.getAddress();
-    const vaultAddr = await contract.vault();
-    const [b,y,v,p,tp,pi] = await Promise.all([
-      contract.balanceOf(addr),
-      contract.totalSupply(),
-      contract.balanceOf(vaultAddr),
-      contract.currentPrice(),
-      contract.totalPurchases(),
-      contract.purchaseIndex(addr)
-    ]);
-    document.getElementById("yourBalance").textContent = Number(ethers.formatUnits(b,18)).toFixed(4);
-    document.getElementById("totalSupply").textContent = Number(ethers.formatUnits(y,18)).toFixed(2);
-    document.getElementById("vaultBalance").textContent = Number(ethers.formatUnits(v,18)).toFixed(2);
-    document.getElementById("circulating").textContent = Number(ethers.formatUnits(y-v,18)).toFixed(2);
-    document.getElementById("currentPrice").textContent = Number(ethers.formatUnits(p,18)).toFixed(6)+" MATIC";
-    document.getElementById("canSell").textContent = tp > pi ? "✅ Yes" : "❌ No";
-  }catch(e){ showMsg("Error fetching data: "+e.message,"error"); }
-}
+    async function setup(type){
+      signer = await provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, [
+        "function buy() external payable",
+        "function sell(uint256 amount) external"
+      ], signer);
+      const addr = await signer.getAddress();
+      showMsg(type + " connected: " + addr);
+    }
 
-document.getElementById("connectMetaMask").onclick = connectMetaMask;
-document.getElementById("connectWC").onclick = connectWalletConnect;
+    async function buy(){
+      try{
+        const tx = await contract.buy({ value: ethers.parseEther("0.001") });
+        showMsg("Buy sent: "+tx.hash);
+      }catch(e){ showMsg("Buy failed: "+(e.reason||e.message)); }
+    }
 
-document.getElementById("buyBtn").onclick = async()=>{
-  try{
-    const val = Number(buyAmount.value);
-    if(!val) return showMsg("Enter POL amount","error");
-    const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val),18) });
-    showMsg("Buying tokens...","info");
-    await tx.wait(); showMsg("Buy successful!","success"); fetchData();
-  }catch(e){ showMsg("Buy failed: "+(e.info?.error?.message||e.message),"error"); }
-};
+    async function sell(){
+      try{
+        const tx = await contract.sell(ethers.parseEther("0.001"));
+        showMsg("Sell sent: "+tx.hash);
+      }catch(e){ showMsg("Sell failed: "+(e.reason||e.message)); }
+    }
 
-document.getElementById("sellBtn").onclick = async()=>{
-  try{
-    const amt = await contract.balanceOf(await signer.getAddress());
-    if(amt==0n) return showMsg("No SPLI to sell","error");
-    const tx = await contract.sellTokens(amt);
-    showMsg("Selling tokens...","info");
-    await tx.wait(); showMsg("Sell complete","success"); fetchData();
-  }catch(e){ showMsg("Sell failed: "+(e.info?.error?.message||e.message),"error"); }
-};
+    function showMsg(m,type){
+      const el=document.getElementById("msg");
+      el.style.color = type==="error"?"#ff7070":"#00ffa2";
+      el.innerText = m;
+    }
+  </script>
 
-// --- Dev menu actions ---
-enableTradingBtn.onclick = async()=>{ try{await (await contract.enableTrading(true)).wait();showMsg("Trading enabled","success");}catch(e){showMsg(e.message,"error");}};
-disableTradingBtn.onclick = async()=>{ try{await (await contract.enableTrading(false)).wait();showMsg("Trading disabled","success");}catch(e){showMsg(e.message,"error");}};
-pauseBtn.onclick = async()=>{ try{await (await contract.pause()).wait();showMsg("Contract paused","success");}catch(e){showMsg(e.message,"error");}};
-unpauseBtn.onclick = async()=>{ try{await (await contract.unpause()).wait();showMsg("Contract unpaused","success");}catch(e){showMsg(e.message,"error");}};
-addLiquidityBtn.onclick = async()=>{ try{const amt=liqAmount.value;if(!amt)return showMsg("Enter POL amount","error");await (await contract.addLiquidity({value:ethers.parseUnits(String(amt),18)})).wait();showMsg("Liquidity added","success");}catch(e){showMsg(e.message,"error");}};
-withdrawPOLBtn.onclick = async()=>{ try{const amt=wdAmount.value;if(!amt)return showMsg("Enter amount","error");await (await contract.withdrawPOL(ethers.parseUnits(String(amt),18))).wait();showMsg("POL withdrawn","success");}catch(e){showMsg(e.message,"error");}};
-withdrawAllBtn.onclick = async()=>{ try{await (await contract.withdrawAllPOL()).wait();showMsg("All POL withdrawn","success");}catch(e){showMsg(e.message,"error");}};
-transferVaultBtn.onclick = async()=>{ try{const r=vaultRecipient.value,a=vaultAmount.value;if(!r||!a)return showMsg("Enter recipient and amount","error");await (await contract.transferFromVault(r,ethers.parseUnits(String(a),18))).wait();showMsg("Transfer from vault complete","success");}catch(e){showMsg(e.message,"error");}};
-
-setInterval(()=>{ if(contract) fetchData(); else loadPricePublic(); },15000);
-</script>
+  <!-- ✅ Correct UMD build -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js"></script>
 </body>
 </html>
