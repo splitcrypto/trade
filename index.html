@@ -114,7 +114,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.min.js"></script>
+<!-- ✅ FIXED: use UMD WalletConnect build -->
+<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js"></script>
 <script>
 const CONTRACT_ADDRESS = "0x97D70031d9C64BD4C7AF7ee8CdbFE334B796966F";
 const WC_PROJECT_ID = "a38499ec874228017b4bf3f6d342dcb4";
@@ -163,10 +164,14 @@ async function connectMetaMask(){
   }catch(e){ showMsg(e.message,"error"); }
 }
 
+/* ✅ FIXED connectWalletConnect() */
 async function connectWalletConnect(){
   try{
-    const WalletConnectProvider = window.WalletConnectEthereumProvider?.default || window.WalletConnectEthereumProvider;
-    if(!WalletConnectProvider) return showMsg("WalletConnect not loaded","error");
+    const WalletConnectProvider = window.WalletConnectEthereumProvider;
+    if(!WalletConnectProvider) {
+      showMsg("WalletConnect not loaded","error");
+      return;
+    }
 
     const wc = await WalletConnectProvider.init({
       projectId: WC_PROJECT_ID,
@@ -174,11 +179,13 @@ async function connectWalletConnect(){
       showQrModal: true,
       rpcMap: {137: "https://polygon-rpc.com"}
     });
+
     await wc.enable();
     provider = new ethers.BrowserProvider(wc);
     setup("WalletConnect");
   }catch(e){
     showMsg("WalletConnect error: "+(e.message||e),"error");
+    console.error("WalletConnect error:", e);
   }
 }
 
