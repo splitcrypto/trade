@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Free Money (FREE) — Polygon</title>
+  <title>Free Money Coin (FREE) — Polygon</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -18,38 +18,40 @@
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: #0f172a; }
     header, footer {
-      max-width: 980px; margin: 0 auto; padding: 16px;
+      max-width: 960px; margin: 0 auto; padding: 16px;
       display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     }
-    .container { max-width: 980px; margin: 20px auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: 1fr 360px; }
+    .container { max-width: 960px; margin: 20px auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: 1fr 360px; }
     .card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 600; transition: opacity .15s; }
+    .btn.secondary { background: #444; }
     .btn[disabled] { opacity: .6; cursor: not-allowed; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 8px; text-align: center; font-size: 13px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap: 8px; text-align: center; font-size: 13px; }
     .num { font-weight: 700; font-size: 16px; }
     .muted { color: var(--muted); font-size: 13px; }
     .input-group { display:flex; gap:8px; align-items:center; }
     input[type="number"], input[type="text"] { padding:8px; border-radius:8px; border:1px solid #ddd; width:100%; }
-    .msg { max-width:980px; margin:10px auto; padding:10px 14px; border-radius:8px; display:none; }
+    .msg { max-width:960px; margin:10px auto; padding:10px 14px; border-radius:8px; display:none; }
     .msg.error { background:#fdecea; color:var(--error); display:block; }
     .msg.success { background:#e8f8f5; color:var(--success); display:block; }
     .msg.info { background:#eef2ff; color:#374151; display:block; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .small { font-size:13px; color:var(--muted); }
+    .param-row { display:flex; justify-content:space-between; gap:10px; padding:6px 0; font-size:14px; }
+    .param-name { color:var(--muted); }
     @media(max-width:900px){ .container{ grid-template-columns:1fr } }
   </style>
 </head>
 <body>
 
 <header>
-  <h2>Free Money (FREE) — Polygon</h2>
+  <h2>Free Money Coin (FREE) — Polygon</h2>
   <div>
-    <button id="connectWallet" class="btn">🔗 Connect Wallet</button>
+    <button id="connectWeb3" class="btn">🔗 Connect Wallet</button>
   </div>
 </header>
 
-<div id="messageBox" class="msg info">Connect your wallet to interact with the contract.</div>
+<div id="messageBox" class="msg info">Welcome — connect your wallet to interact with Free Money Coin.</div>
 
 <div class="container">
   <div>
@@ -58,153 +60,144 @@
       <div><strong>Network:</strong> <span id="network">—</span></div>
       <hr>
       <div class="stats">
-        <div><div class="num" id="yourBalance">—</div><div class="small">Your FREE</div></div>
-        <div><div class="num" id="totalSupply">—</div><div class="small">Total Supply</div></div>
-        <div><div class="num" id="vaultBalance">—</div><div class="small">Vault (contract)</div></div>
-        <div><div class="num" id="canSell">—</div><div class="small">Vault Allowance</div></div>
+        <div><div class="num" id="yourBalance">—</div><div class="muted">Your FREE</div></div>
+        <div><div class="num" id="totalSupply">—</div><div class="muted">Total Supply</div></div>
+        <div><div class="num" id="vaultBalance">—</div><div class="muted">Vault</div></div>
+        <div><div class="num" id="circulating">—</div><div class="muted">Circulating</div></div>
+        <div><div class="num" id="canSell">—</div><div class="muted">Can Sell?</div></div>
       </div>
 
-      <hr>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-        <div><strong>Min price:</strong> <span id="minPrice">—</span></div>
-        <div><strong>Max price:</strong> <span id="maxPrice">—</span></div>
-        <div><strong>Vault price:</strong> <span id="vaultPrice">—</span></div>
-      </div>
-
-      <div style="margin-top:8px"><strong>Contract:</strong>
-        <a id="contractLink" href="#" target="_blank">—</a>
+      <div style="margin-top:8px"><strong>Vault mint price:</strong> <span id="vaultSellPrice">—</span></div>
+      <div style="margin-top:6px"><strong>Vault buyback price:</strong> <span id="buybackPrice">—</span></div>
+      <div style="margin-top:6px"><strong>Public price range:</strong> <span id="minMaxPrice">—</span></div>
+      <div style="margin-top:6px"><strong>Contract:</strong>
+        <a id="contractLink" href="#" target="_blank" rel="noopener noreferrer">contract</a>
       </div>
     </div>
 
-    <div class="card" style="margin-top:12px">
+    <div class="card">
       <h3>Buy from Vault</h3>
       <div class="input-group" style="margin:8px 0;">
-        <input id="buyPOL" type="number" placeholder="Amount (POL)" min="0" step="any" />
-        <div style="font-weight:600">MATIC</div>
+        <input id="buyAmount" type="number" placeholder="POL (MATIC)" min="0" step="any" />
+        <button id="buyBtn" class="btn">Buy</button>
       </div>
-      <button id="buyBtn" class="btn">Buy</button>
-      <div class="small" style="margin-top:8px">Tokens minted at the vault sell price; decimals = 0.</div>
+      <div style="margin-top:8px; font-size:13px; color:var(--muted);">
+        Minting is at the vault price (owner configurable). decimals = 0 (integer tokens).
+      </div>
     </div>
 
-    <div class="card" style="margin-top:12px">
-      <h3>Buy From Holder (secondary)</h3>
-      <div class="input-group" style="margin:8px 0;">
-        <input id="sellerAddr" type="text" placeholder="Seller address" />
-        <input id="sellerAmt" type="number" placeholder="Tokens" min="1" step="1" />
+    <div class="card">
+      <h3>Sell to Vault (allowed amount)</h3>
+      <div style="margin:8px 0;">
+        <div class="muted">Vault sellback allowance:</div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <div style="flex:1"><div class="num" id="allowanceToSell">—</div></div>
+          <div><button id="sellBtn" class="btn">Sell Allowed</button></div>
+        </div>
       </div>
-      <div class="input-group" style="margin-top:8px;">
-        <input id="sellerPOL" type="number" placeholder="Total POL to pay" min="0" step="any" />
-        <button id="buyFromSellerBtn" class="btn">Buy From Seller</button>
-      </div>
-      <div class="small" style="margin-top:6px">Buyer must ensure seller has approved this contract to transfer tokens.</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--muted);">Vault buyback buys up to (vaultSoldTo / 2) less prior reclaimed.</div>
     </div>
   </div>
 
   <div>
-    <div class="card">
-      <h3>Sell to Vault</h3>
-      <div class="small">You may only sell up to your vault buyback allowance.</div>
-      <div style="margin-top:8px">
-        <button id="sellToVaultBtn" class="btn">Sell Allowed Amount</button>
+    <div class="card" id="ownerPanel" style="display:none">
+      <h3>Owner Controls</h3>
+      <div class="input-group" style="margin-bottom:8px;">
+        <input id="minPriceInput" type="number" placeholder="min price (POL)" step="any">
+        <input id="maxPriceInput" type="number" placeholder="max price (POL)" step="any">
+      </div>
+      <div class="input-group" style="margin-bottom:8px;">
+        <input id="vaultSellInput" type="number" placeholder="vault sell price (POL)" step="any">
+        <input id="buybackInput" type="number" placeholder="buyback price (POL)" step="any">
+      </div>
+      <div class="input-group" style="margin-bottom:8px;">
+        <input id="maxMintInput" type="number" placeholder="max mintable (tokens)" step="1">
+        <input id="secondHandBonusInput" type="number" placeholder="second-hand bonus (e.g., 1)" step="1">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="setParamsBtn" class="btn">Set Params</button>
+        <button id="withdrawPOLBtn" class="btn secondary">Withdraw POL</button>
+        <button id="withdrawTokensBtn" class="btn secondary">Withdraw Tokens</button>
       </div>
     </div>
 
-    <div class="card" id="devMenu" style="display:none;margin-top:12px">
-      <h3>Owner / Dev Menu</h3>
-      <div style="display:grid;gap:8px">
-        <div style="display:flex;gap:8px;">
-          <button class="btn" id="pauseBtn">Pause</button>
-          <button class="btn" id="unpauseBtn">Unpause</button>
-        </div>
-
-        <div style="display:flex;gap:8px;">
-          <input id="withdrawPOLAmt" type="number" placeholder="POL to withdraw">
-          <button id="withdrawPOLBtn" class="btn">Withdraw POL</button>
-        </div>
-
-        <div style="display:flex;gap:8px;">
-          <input id="withdrawTokenAmt" type="number" placeholder="Tokens to withdraw">
-          <button id="withdrawTokensBtn" class="btn">Withdraw Tokens</button>
-        </div>
-
-        <hr>
-
-        <div>
-          <strong>Set params</strong>
-          <div style="margin-top:6px; display:grid; gap:6px;">
-            <div style="display:flex; gap:6px;">
-              <input id="setMin" placeholder="minPrice (POL)" type="number">
-              <input id="setMax" placeholder="maxPrice (POL)" type="number">
-              <button id="setMinMaxBtn" class="btn">Set Min/Max</button>
-            </div>
-            <div style="display:flex; gap:6px;">
-              <input id="setVaultPrice" placeholder="vaultSellPrice (POL)" type="number">
-              <input id="setBuybackPrice" placeholder="buybackPrice (POL)" type="number">
-              <button id="setPricesBtn" class="btn">Set Prices</button>
-            </div>
-            <div style="display:flex; gap:6px;">
-              <input id="setMaxMint" placeholder="maxMintable (raw tokens)" type="number">
-              <input id="setBonus" placeholder="secondHandBonus (integer)" type="number">
-              <button id="setMiscBtn" class="btn">Set Misc</button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="card" id="publicParams" style="display:none">
+      <h3>Parameters</h3>
+      <div class="param-row"><div class="param-name">Min price</div><div id="p_min">—</div></div>
+      <div class="param-row"><div class="param-name">Max price</div><div id="p_max">—</div></div>
+      <div class="param-row"><div class="param-name">Vault sell price</div><div id="p_vaultSell">—</div></div>
+      <div class="param-row"><div class="param-name">Buyback price</div><div id="p_buyback">—</div></div>
+      <div class="param-row"><div class="param-name">Max mintable</div><div id="p_maxMint">—</div></div>
+      <div class="param-row"><div class="param-name">Minted so far</div><div id="p_minted">—</div></div>
+      <div class="param-row"><div class="param-name">2nd-hand bonus</div><div id="p_bonus">—</div></div>
     </div>
-
   </div>
 </div>
 
-<div class="card" style="max-width:980px;margin:20px auto;line-height:1.55;">
-  <h2 style="color:var(--accent);margin-top:0;">About FreeMoneyCoin (FREE)</h2>
-  <p><strong>Quick summary:</strong> Vault mints tokens at a vault price (1 POL by default). Secondary buys must pay between public min and max prices; owners can configure parameters. Sellers can sell limited amounts back to the vault for a preset buyback price. Decimals are 0 (whole coins).</p>
-  <ul>
-    <li>Buy from vault (mint) at vault price.</li>
-    <li>Buy from holders inside min/max range; buyer obtains bonus minted tokens.</li>
-    <li>Sellers can sell back up to half of their vault-acquired tokens (vault allowance).</li>
-    <li>Owner-only controls exist for pause, withdraw, params.</li>
-  </ul>
+<div class="card" style="max-width:960px;margin:20px auto;line-height:1.55;">
+  <h2 style="color:var(--accent);margin-top:0;">A note from the creator</h2>
+  <p>
+    This is my third serious attempt at building a coin — and I’m proud of how Free Money Coin (FMC) has turned
+    out. I’ve taken everything I learned from my earlier projects and built something I actually stand behind and
+    can recommend putting money into.
+  </p>
+  <p>
+    FMC is intentionally different. Rather than encouraging buy-and-hold, we reward closing positions quickly.
+    The contract holds its own liquidity in a built-in vault (no external AMM required) so supply and instantly
+    claimable liquidity remain aligned. Every POL sent in mints tokens directly from the vault, and the vault
+    can buy back tokens at a fixed premium so you can lock in gains.
+  </p>
+  <p>
+    Two problems I wanted to fix were centralization of liquidity services and the disconnect between a coin’s
+    stated value and how much real cash is available to back it. FMC’s vault model mints tokens as investors add
+    POL so that supply more closely tracks real, redeemable liquidity.
+  </p>
+  <p>
+    The trading model is novel: a secondary market buyer effectively funds a previous holder’s exit, and the vault
+    mints a bonus to the new buyer, often giving them an even better effective entry price. The system encourages
+    fast, community-driven turnover rather than long, speculative holding.
+  </p>
+  <p>
+    Below are the broad rules and mechanics (brief). If you’re here to participate: read, understand, and trade
+    responsibly — and don’t let anyone tell you there’s no such thing as free money!
+  </p>
 </div>
 
 <footer class="muted" style="text-align:center; padding:18px 0;">
-  Built for FreeMoneyCoin — Polygon Network
+  Built for Free Money Coin — Polygon Network
 </footer>
 
-<!-- Ethers.js (v6) -->
+<!-- Ethers.js -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
 
 <script>
-/*
-  Replace CONTRACT_ADDRESS below with your deployed FreeMoneyCoinV4 contract address.
-  Note: decimals=0 in your contract (tokens are whole numbers).
-*/
-const CONTRACT_ADDRESS = "0x0C636aA36352d4d158f7D375DE235458c8DeA4Fc";
-
+/* ====== CONFIG - update CONTRACT_ADDRESS ====== */
+const CONTRACT_ADDRESS = "PUT_YOUR_CONTRACT_ADDRESS_HERE";
+/* ABI: only the functions/events used by this front-end */
 const ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
   "function vault() view returns (address)",
   "function minPriceWei() view returns (uint256)",
   "function maxPriceWei() view returns (uint256)",
-  "function getPublicMinPriceWei() view returns (uint256)",
-  "function getPublicMaxPriceWei() view returns (uint256)",
-  "function getVaultSellPriceWei() view returns (uint256)",
   "function vaultSellPriceWei() view returns (uint256)",
   "function buybackPriceWei() view returns (uint256)",
+  "function maxMintableFromVault() view returns (uint256)",
+  "function mintedFromVault() view returns (uint256)",
+  "function secondHandBonus() view returns (uint256)",
+  "function vaultBuybackAllowance(address) view returns (uint256)",
+  "function vaultSoldTo(address) view returns (uint256)",
   "function buyTokens() payable",
   "function buyFromSeller(address,uint256) payable",
   "function sellToVault(uint256)",
-  "function vaultBuybackAllowance(address) view returns (uint256)",
-  "function owner() view returns (address)",
-  "function pause()",
-  "function unpause()",
   "function withdrawPOL(uint256)",
   "function withdrawTokens(uint256)",
   "function setMinMaxPriceWei(uint256,uint256)",
-  "function setVaultSellPriceWei(uint256)",
   "function setBuybackPriceWei(uint256)",
+  "function setVaultSellPriceWei(uint256)",
   "function setMaxMintableFromVault(uint256)",
   "function setSecondHandBonus(uint256)",
+  "function owner() view returns (address)",
   "event TokensMinted(address,uint256,uint256)",
   "event BoughtFromSeller(address,address,uint256,uint256,uint256,uint256)",
   "event SoldToVault(address,uint256,uint256)"
@@ -212,45 +205,49 @@ const ABI = [
 
 let provider, signer, contract;
 const msgBox = document.getElementById("messageBox");
-
 function showMsg(text, type="info") {
   msgBox.textContent = text;
   msgBox.className = "msg " + type;
   msgBox.style.display = "block";
 }
 
-function short(addr){
-  if(!addr) return "—";
-  return addr.slice(0,6) + "..." + addr.slice(-4);
-}
+function short(addr) { return addr.slice(0,6) + "..." + addr.slice(-4); }
 
-async function showPublicData() {
+async function loadPublicParams() {
   try {
     const rpc = new ethers.JsonRpcProvider("https://polygon-rpc.com");
-    const rc = new ethers.Contract(CONTRACT_ADDRESS, ABI, rpc);
-    const [ts, vb, min, max, vaultPrice] = await Promise.all([
-      rc.totalSupply(),
-      rc.balanceOf(CONTRACT_ADDRESS),
-      rc.getPublicMinPriceWei().catch(()=>rc.minPriceWei()), // fallback
-      rc.getPublicMaxPriceWei().catch(()=>rc.maxPriceWei()),
-      rc.getVaultSellPriceWei().catch(()=>rc.vaultSellPriceWei())
+    const c = new ethers.Contract(CONTRACT_ADDRESS, ABI, rpc);
+    const [vaultAddr, minP, maxP, vaultSell, buyback, maxMint, minted, bonus] = await Promise.all([
+      c.vault(),
+      c.minPriceWei(),
+      c.maxPriceWei(),
+      c.vaultSellPriceWei(),
+      c.buybackPriceWei(),
+      c.maxMintableFromVault(),
+      c.mintedFromVault(),
+      c.secondHandBonus()
     ]);
-    document.getElementById("totalSupply").textContent = ethers.formatUnits(ts, 0);
-    document.getElementById("vaultBalance").textContent = ethers.formatUnits(vb, 0);
-    document.getElementById("minPrice").textContent = Number(ethers.formatUnits(min,18)).toFixed(4) + " MATIC";
-    document.getElementById("maxPrice").textContent = Number(ethers.formatUnits(max,18)).toFixed(4) + " MATIC";
-    document.getElementById("vaultPrice").textContent = Number(ethers.formatUnits(vaultPrice,18)).toFixed(6) + " MATIC";
-    const link = document.getElementById("contractLink");
-    link.href = "https://polygonscan.com/address/" + CONTRACT_ADDRESS;
-    link.textContent = CONTRACT_ADDRESS;
-  } catch(e){
-    console.log("public fetch error",e);
+    document.getElementById("contractLink").href = "https://polygonscan.com/address/" + CONTRACT_ADDRESS;
+    document.getElementById("p_min").textContent = Number(ethers.formatUnits(minP,18)).toString() + " MATIC";
+    document.getElementById("p_max").textContent = Number(ethers.formatUnits(maxP,18)).toString() + " MATIC";
+    document.getElementById("p_vaultSell").textContent = Number(ethers.formatUnits(vaultSell,18)).toString() + " MATIC";
+    document.getElementById("p_buyback").textContent = Number(ethers.formatUnits(buyback,18)).toString() + " MATIC";
+    document.getElementById("p_maxMint").textContent = maxMint.toString();
+    document.getElementById("p_minted").textContent = minted.toString();
+    document.getElementById("p_bonus").textContent = bonus.toString();
+    document.getElementById("p_min").dataset.raw = minP.toString();
+    document.getElementById("p_max").dataset.raw = maxP.toString();
+  } catch(e) {
+    // ignore
   }
 }
-showPublicData();
+loadPublicParams();
 
-async function connect() {
-  if (!window.ethereum) return showMsg("Install MetaMask or other Web3 wallet", "error");
+/* CONNECT */
+async function connectWeb3(){
+  if (!window.ethereum) {
+    return showMsg("Please install MetaMask or another Web3 wallet.","error");
+  }
   try {
     await window.ethereum.request({ method: "eth_requestAccounts" });
     provider = new ethers.BrowserProvider(window.ethereum);
@@ -259,178 +256,197 @@ async function connect() {
     const addr = await signer.getAddress();
     document.getElementById("address").textContent = short(addr);
     document.getElementById("network").textContent = "Polygon (chain 137)";
-    document.getElementById("connectWallet").textContent = "Connected ✅";
-    document.getElementById("connectWallet").disabled = true;
-    showMsg("Wallet connected", "success");
-    setupUser(addr);
-    // subscribe to events
-    contract.on("TokensMinted", ()=>fetchUserData());
-    contract.on("BoughtFromSeller", ()=>fetchUserData());
-    contract.on("SoldToVault", ()=>fetchUserData());
-  } catch (err) {
-    showMsg(err.message || String(err), "error");
-  }
-}
+    document.getElementById("connectWeb3").textContent = "🔗 Connected";
+    document.getElementById("connectWeb3").disabled = true;
 
-document.getElementById("connectWallet").onclick = connect;
-
-async function setupUser(addr) {
-  try {
-    fetchUserData();
-    // if owner, show dev menu
-    const owner = await contract.owner();
+    const owner = await contract.owner().catch(()=>null);
     if (owner && owner.toLowerCase() === addr.toLowerCase()) {
-      document.getElementById("devMenu").style.display = "block";
+      // show owner panel
+      document.getElementById("ownerPanel").style.display = "block";
+      document.getElementById("publicParams").style.display = "none";
+    } else {
+      document.getElementById("ownerPanel").style.display = "none";
+      document.getElementById("publicParams").style.display = "block";
     }
-  } catch(e){
-    console.log(e);
+
+    showMsg("Wallet connected: " + short(addr), "success");
+    fetchData();
+    // subscribe to events to update UI
+    contract.on("TokensMinted", fetchData);
+    contract.on("BoughtFromSeller", fetchData);
+    contract.on("SoldToVault", fetchData);
+  } catch(e) {
+    showMsg("Connection failed: " + (e.message || e), "error");
   }
 }
 
-async function fetchUserData(){
+/* FETCH DATA */
+async function fetchData(){
+  if (!contract) return;
   try {
-    if(!contract) return;
-    const signerAddr = await signer.getAddress();
+    const addr = await signer.getAddress();
     const vaultAddr = await contract.vault();
-    const [bal, ts, vaultBal, allowance] = await Promise.all([
-      contract.balanceOf(signerAddr),
+    const [yourBal, totalSup, vaultBal, vaultSellPrice, buybackPrice, minP, maxP, minted, maxMint, bonus, vaultAllowance] = await Promise.all([
+      contract.balanceOf(addr),
       contract.totalSupply(),
-      contract.balanceOf(CONTRACT_ADDRESS),
-      contract.vaultBuybackAllowance(signerAddr).catch(()=>0)
+      contract.balanceOf(vaultAddr),
+      contract.vaultSellPriceWei(),
+      contract.buybackPriceWei(),
+      contract.minPriceWei(),
+      contract.maxPriceWei(),
+      contract.mintedFromVault(),
+      contract.maxMintableFromVault(),
+      contract.secondHandBonus(),
+      contract.vaultBuybackAllowance(addr)
     ]);
-    document.getElementById("yourBalance").textContent = ethers.formatUnits(bal, 0);
-    document.getElementById("totalSupply").textContent = ethers.formatUnits(ts, 0);
-    document.getElementById("vaultBalance").textContent = ethers.formatUnits(vaultBal, 0);
-    document.getElementById("canSell").textContent = ethers.formatUnits(allowance, 0);
+
+    // decimals = 0 for token units
+    document.getElementById("yourBalance").textContent = yourBal.toString();
+    document.getElementById("totalSupply").textContent = totalSup.toString();
+    document.getElementById("vaultBalance").textContent = vaultBal.toString();
+    const circ = (BigInt(totalSup) - BigInt(vaultBal)).toString();
+    document.getElementById("circulating").textContent = circ;
+    // Can sell?
+    document.getElementById("canSell").textContent = (BigInt(vaultAllowance) > 0n) ? "✅ Yes" : "❌ No";
+    // Prices
+    document.getElementById("vaultSellPrice").textContent = Number(ethers.formatUnits(vaultSellPrice,18)).toString() + " MATIC";
+    document.getElementById("buybackPrice").textContent = Number(ethers.formatUnits(buybackPrice,18)).toString() + " MATIC";
+    document.getElementById("minMaxPrice").textContent = Number(ethers.formatUnits(minP,18)).toString() + " — " + Number(ethers.formatUnits(maxP,18)).toString() + " MATIC";
+    // contract link
+    document.getElementById("contractLink").href = "https://polygonscan.com/address/" + CONTRACT_ADDRESS;
+    // allowance to sell (display)
+    document.getElementById("allowanceToSell").textContent = vaultAllowance.toString();
+
+    // fill public params (for non-owner view)
+    document.getElementById("p_min").textContent = Number(ethers.formatUnits(minP,18)).toString() + " MATIC";
+    document.getElementById("p_max").textContent = Number(ethers.formatUnits(maxP,18)).toString() + " MATIC";
+    document.getElementById("p_vaultSell").textContent = Number(ethers.formatUnits(vaultSellPrice,18)).toString() + " MATIC";
+    document.getElementById("p_buyback").textContent = Number(ethers.formatUnits(buybackPrice,18)).toString() + " MATIC";
+    document.getElementById("p_maxMint").textContent = maxMint.toString();
+    document.getElementById("p_minted").textContent = minted.toString();
+    document.getElementById("p_bonus").textContent = bonus.toString();
+
   } catch(e) {
-    console.log("fetch user error", e);
+    showMsg("Error fetching data: " + (e.message || e), "error");
   }
 }
+
+/* UI ACTIONS */
 
 // Buy from vault
-document.getElementById("buyBtn").onclick = async()=>{
+document.getElementById("buyBtn").onclick = async () => {
+  if (!contract) return showMsg("Connect wallet first","error");
   try {
-    if(!contract) return showMsg("Connect wallet","error");
-    const val = document.getElementById("buyPOL").value;
-    if(!val || Number(val) <= 0) return showMsg("Enter POL amount","error");
+    const val = Number(document.getElementById("buyAmount").value);
+    if (!val || val <= 0) return showMsg("Enter POL amount to buy","error");
     const tx = await contract.buyTokens({ value: ethers.parseUnits(String(val), 18) });
-    showMsg("Sending buy tx...", "info");
+    showMsg("Submitting buy transaction...", "info");
     await tx.wait();
-    showMsg("Bought — tx mined", "success");
-    fetchUserData();
-    showPublicData();
-  } catch(e){
-    showMsg("Buy failed: "+(e?.reason || e?.message || e), "error");
-    console.error(e);
+    showMsg("Buy successful", "success");
+    fetchData();
+  } catch(e) {
+    showMsg("Buy failed: " + (e?.reason || e?.message || e), "error");
   }
 };
 
-// Buy from seller
-document.getElementById("buyFromSellerBtn").onclick = async()=>{
+// Sell to vault (sell allowed)
+document.getElementById("sellBtn").onclick = async () => {
+  if (!contract) return showMsg("Connect wallet first","error");
   try {
-    if(!contract) return showMsg("Connect wallet","error");
-    const seller = document.getElementById("sellerAddr").value;
-    const tokens = document.getElementById("sellerAmt").value;
-    const pol = document.getElementById("sellerPOL").value;
-    if(!seller || !tokens || Number(tokens) <= 0 || !pol || Number(pol) <= 0) return showMsg("Fill seller, tokens, and POL", "error");
-    // call buyFromSeller(seller, tokens) payable
-    const tx = await contract.buyFromSeller(seller, BigInt(Math.floor(Number(tokens))), { value: ethers.parseUnits(String(pol),18) });
-    showMsg("Buying from seller...", "info");
-    await tx.wait();
-    showMsg("Bought from seller — tx mined", "success");
-    fetchUserData();
-    showPublicData();
-  } catch(e){
-    showMsg("BuyFromSeller failed: "+(e?.reason || e?.message || e), "error");
-    console.error(e);
-  }
-};
-
-// Sell to vault (sell allowed amount)
-document.getElementById("sellToVaultBtn").onclick = async()=>{
-  try {
-    if(!contract) return showMsg("Connect wallet","error");
     const addr = await signer.getAddress();
-    const allowed = await contract.vaultBuybackAllowance(addr);
-    if (allowed === 0n) return showMsg("No vault allowance available","error");
-    // Ensure user has at least that many tokens
-    const bal = await contract.balanceOf(addr);
-    const toSell = allowed > bal ? bal : allowed;
-    if (toSell === 0n) return showMsg("No tokens to sell","error");
-    const tx = await contract.sellToVault(toSell);
-    showMsg("Selling to vault...", "info");
+    const allowance = await contract.vaultBuybackAllowance(addr);
+    const can = BigInt(allowance);
+    if (can === 0n) return showMsg("No vault allowance to sell","error");
+    // sell the allowed amount
+    const tx = await contract.sellToVault(allowance);
+    showMsg("Submitting sell transaction...", "info");
     await tx.wait();
-    showMsg("Sold to vault — tx mined", "success");
-    fetchUserData();
-    showPublicData();
-  } catch(e){
-    showMsg("Sell failed: "+(e?.reason || e?.message || e), "error");
-    console.error(e);
+    showMsg("Sell successful", "success");
+    fetchData();
+  } catch(e) {
+    showMsg("Sell failed: " + (e?.reason || e?.message || e), "error");
   }
 };
 
-// Dev actions
-document.getElementById("pauseBtn").onclick = async()=>{ try{ await (await contract.pause()).wait(); showMsg("Paused","success"); }catch(e){ showMsg(e?.reason||e?.message || e, "error"); }};
-document.getElementById("unpauseBtn").onclick = async()=>{ try{ await (await contract.unpause()).wait(); showMsg("Unpaused","success"); }catch(e){ showMsg(e?.reason||e?.message || e, "error"); }};
-
-document.getElementById("withdrawPOLBtn").onclick = async()=>{
+// Owner: Set params
+document.getElementById("setParamsBtn").onclick = async () => {
+  if (!contract) return showMsg("Connect wallet first","error");
   try {
-    const val = document.getElementById("withdrawPOLAmt").value;
-    if(!val) return showMsg("Enter POL amount","error");
-    await (await contract.withdrawPOL(ethers.parseUnits(String(val),18))).wait();
-    showMsg("Withdraw successful","success");
-  } catch(e) { showMsg(e?.reason||e?.message || e, "error"); console.error(e); }
+    const min = document.getElementById("minPriceInput").value;
+    const max = document.getElementById("maxPriceInput").value;
+    const vSell = document.getElementById("vaultSellInput").value;
+    const buyback = document.getElementById("buybackInput").value;
+    const maxMint = document.getElementById("maxMintInput").value;
+    const bonus = document.getElementById("secondHandBonusInput").value;
+
+    if (!min || !max) return showMsg("Enter min and max prices", "error");
+    // setMinMaxPriceWei(min,max)
+    const tx1 = await contract.setMinMaxPriceWei(ethers.parseUnits(String(min),18), ethers.parseUnits(String(max),18));
+    showMsg("Setting min/max...", "info");
+    await tx1.wait();
+
+    if (vSell) {
+      const tx2 = await contract.setVaultSellPriceWei(ethers.parseUnits(String(vSell),18));
+      await tx2.wait();
+    }
+    if (buyback) {
+      const tx3 = await contract.setBuybackPriceWei(ethers.parseUnits(String(buyback),18));
+      await tx3.wait();
+    }
+    if (maxMint) {
+      const tx4 = await contract.setMaxMintableFromVault( BigInt(maxMint) );
+      await tx4.wait();
+    }
+    if (bonus) {
+      const tx5 = await contract.setSecondHandBonus( BigInt(bonus) );
+      await tx5.wait();
+    }
+    showMsg("Parameters updated", "success");
+    fetchData();
+  } catch(e) {
+    showMsg("Setting params failed: " + (e?.reason || e?.message || e), "error");
+  }
 };
 
-document.getElementById("withdrawTokensBtn").onclick = async()=>{
+// Owner: withdraw POL (amount typed into buyAmount input for convenience)
+document.getElementById("withdrawPOLBtn").onclick = async () => {
+  if (!contract) return showMsg("Connect wallet first","error");
   try {
-    const val = document.getElementById("withdrawTokenAmt").value;
-    if(!val) return showMsg("Enter token amount","error");
-    await (await contract.withdrawTokens(BigInt(Math.floor(Number(val)))) ).wait();
-    showMsg("Tokens withdrawn to owner","success");
-  } catch(e) { showMsg(e?.reason||e?.message || e, "error"); console.error(e); }
+    const amt = Number(document.getElementById("buyAmount").value);
+    if (!amt || amt <= 0) return showMsg("Enter POL amount to withdraw (in POL)", "error");
+    const tx = await contract.withdrawPOL(ethers.parseUnits(String(amt),18));
+    showMsg("Withdrawing POL...", "info");
+    await tx.wait();
+    showMsg("Withdraw complete", "success");
+    fetchData();
+  } catch(e) {
+    showMsg("Withdraw failed: " + (e?.reason || e?.message || e), "error");
+  }
 };
 
-document.getElementById("setMinMaxBtn").onclick = async()=>{
+// Owner: withdraw tokens from vault (uses buyAmount input as token amount)
+document.getElementById("withdrawTokensBtn").onclick = async () => {
+  if (!contract) return showMsg("Connect wallet first","error");
   try {
-    const min = document.getElementById("setMin").value;
-    const max = document.getElementById("setMax").value;
-    if(!min||!max) return showMsg("Enter both min and max in POL","error");
-    await (await contract.setMinMaxPriceWei(ethers.parseUnits(String(min),18), ethers.parseUnits(String(max),18))).wait();
-    showMsg("Min/Max set","success");
-    showPublicData();
-  } catch(e) { showMsg(e?.reason||e?.message || e, "error"); console.error(e); }
+    const amt = Number(document.getElementById("buyAmount").value);
+    if (!amt || amt <= 0) return showMsg("Enter token amount to withdraw", "error");
+    const tx = await contract.withdrawTokens(BigInt(amt));
+    showMsg("Withdrawing tokens...", "info");
+    await tx.wait();
+    showMsg("Token withdraw complete", "success");
+    fetchData();
+  } catch(e) {
+    showMsg("Token withdraw failed: " + (e?.reason || e?.message || e), "error");
+  }
 };
 
-document.getElementById("setPricesBtn").onclick = async()=>{
-  try {
-    const v = document.getElementById("setVaultPrice").value;
-    const b = document.getElementById("setBuybackPrice").value;
-    if(!v||!b) return showMsg("Enter vault and buyback prices","error");
-    await (await contract.setVaultSellPriceWei(ethers.parseUnits(String(v),18))).wait();
-    await (await contract.setBuybackPriceWei(ethers.parseUnits(String(b),18))).wait();
-    showMsg("Vault / Buyback prices set","success");
-    showPublicData();
-  } catch(e) { showMsg(e?.reason||e?.message || e, "error"); console.error(e); }
-};
+/* Wire up connect button */
+document.getElementById("connectWeb3").onclick = connectWeb3;
 
-document.getElementById("setMiscBtn").onclick = async()=>{
-  try {
-    const maxMint = document.getElementById("setMaxMint").value;
-    const bonus = document.getElementById("setBonus").value;
-    if(!maxMint||!bonus) return showMsg("Enter maxMintable and secondHandBonus","error");
-    await (await contract.setMaxMintableFromVault(BigInt(Math.floor(Number(maxMint))))).wait();
-    await (await contract.setSecondHandBonus(BigInt(Math.floor(Number(bonus))))).wait();
-    showMsg("Config updated","success");
-  } catch(e) { showMsg(e?.reason||e?.message || e, "error"); console.error(e); }
-};
-
-// Auto refresh
-setInterval(()=>{
-  if(contract) fetchUserData();
-  showPublicData();
-},15000);
-
+/* Polling updates */
+setInterval(()=> {
+  if (contract) fetchData(); else loadPublicParams();
+}, 15000);
 </script>
 </body>
 </html>
